@@ -1,0 +1,36 @@
+<link rel="import" href="my-element.html">
+
+<dom-module id="my-app">
+    <template>
+        <style>
+             :host {
+                display: block;
+            }
+        </style>
+        <div id="text-binding">[[textBinding]]</div>
+        <div>My-element: [[textBinding]]</div>
+        <my-element property="[[propertyBinding]]" property-with-literal="literal + [[propertyBinding]]"></my-element>
+        <template is="dom-if">
+            <div>Inside template [[propertyBinding]]</div>
+        </template>
+    </template>
+    <script>
+        class MyApp extends HTMLElement {
+            static get properties() {
+                return {
+                    textBinding: String,
+                    propertyBinding: {
+                        type: String,
+                        reflectToAttribute: true,
+                        notify: true,
+                        observer: '_propertyChanged'
+                    }
+                }
+            }
+            _propertyChanged(value, oldValue) {
+                console.log(oldValue, value);
+            }
+        }
+        customElements.define('my-app', MyApp)
+    </script>
+</dom-module>

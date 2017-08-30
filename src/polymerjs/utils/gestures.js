@@ -1,6 +1,6 @@
 import './boot.js';
-import { timeOut } from './async.js';
-import { Debouncer } from './debounce.js';
+import {timeOut} from './async.js';
+import {Debouncer} from './debounce.js';
 
 // detect native touch action support
 let HAS_NATIVE_TA = typeof document.head.style.touchAction === 'string';
@@ -30,18 +30,23 @@ let MOUSE_HAS_BUTTONS = (function() {
 // check for passive event listeners
 let SUPPORTS_PASSIVE = false;
 (function() {
-  try {
-    let opts = Object.defineProperty({}, 'passive', {get: function() {SUPPORTS_PASSIVE = true;}})
-    window.addEventListener('test', null, opts);
-    window.removeEventListener('test', null, opts);
-  } catch(e) {}
+try {
+  let opts = Object.defineProperty({}, 'passive', {
+    get: function() {
+      SUPPORTS_PASSIVE = true;
+    }
+  })
+  window.addEventListener('test', null, opts);
+  window.removeEventListener('test', null, opts);
+} catch (e) {
+}
 })();
 
 // Check for touch-only devices
 let IS_TOUCH_ONLY = navigator.userAgent.match(/iP(?:[oa]d|hone)|Android/);
 
-let GestureRecognizer = function(){}; // eslint-disable-line no-unused-vars
-GestureRecognizer.prototype.reset = function(){};
+let GestureRecognizer = function() {};  // eslint-disable-line no-unused-vars
+GestureRecognizer.prototype.reset = function() {};
 /** @type {function(MouseEvent) | undefined} */
 GestureRecognizer.prototype.mousedown;
 /** @type {(function(MouseEvent) | undefined)} */
@@ -114,9 +119,7 @@ function ignoreMouse(e) {
   };
   POINTERSTATE.mouse.target = e.composedPath()[0];
   POINTERSTATE.mouse.mouseIgnoreJob = Debouncer.debounce(
-        POINTERSTATE.mouse.mouseIgnoreJob
-      , timeOut.after(MOUSE_TIMEOUT)
-      , unset);
+      POINTERSTATE.mouse.mouseIgnoreJob, timeOut.after(MOUSE_TIMEOUT), unset);
 }
 
 /**
@@ -129,8 +132,9 @@ function hasLeftMouseButton(ev) {
   if (MOUSE_EVENTS.indexOf(type) === -1) {
     return false;
   }
-  // ev.button is not reliable for mousemove (0 is overloaded as both left button and no buttons)
-  // instead we use ev.buttons (bitmask of buttons) or fall back to ev.which (deprecated, 0 for no buttons, 1 for left button)
+  // ev.button is not reliable for mousemove (0 is overloaded as both left
+  // button and no buttons) instead we use ev.buttons (bitmask of buttons) or
+  // fall back to ev.which (deprecated, 0 for no buttons, 1 for left button)
   if (type === 'mousemove') {
     // allow undefined for testing events
     let buttons = ev.buttons === undefined ? 1 : ev.buttons;
@@ -157,31 +161,26 @@ function isSyntheticClick(ev) {
     // the bounding box of the target of the event
     // Thanks IE 10 >:(
     let t = _findOriginalTarget(ev);
-    // make sure the target of the event is an element so we can use getBoundingClientRect,
-    // if not, just assume it is a synthetic click
-    if (!t.nodeType || /** @type {Element} */(t).nodeType !== Node.ELEMENT_NODE) {
+    // make sure the target of the event is an element so we can use
+    // getBoundingClientRect, if not, just assume it is a synthetic click
+    if (!t.nodeType ||
+        /** @type {Element} */ (t).nodeType !== Node.ELEMENT_NODE) {
       return true;
     }
-    let bcr = /** @type {Element} */(t).getBoundingClientRect();
+    let bcr = /** @type {Element} */ (t).getBoundingClientRect();
     // use page x/y to account for scrolling
     let x = ev.pageX, y = ev.pageY;
-    // ev is a synthetic click if the position is outside the bounding box of the target
-    return !((x >= bcr.left && x <= bcr.right) && (y >= bcr.top && y <= bcr.bottom));
+    // ev is a synthetic click if the position is outside the bounding box of
+    // the target
+    return !(
+        (x >= bcr.left && x <= bcr.right) && (y >= bcr.top && y <= bcr.bottom));
   }
   return false;
 }
 
 let POINTERSTATE = {
-  mouse: {
-    target: null,
-    mouseIgnoreJob: null
-  },
-  touch: {
-    x: 0,
-    y: 0,
-    id: -1,
-    scrollDecided: false
-  }
+  mouse: {target: null, mouseIgnoreJob: null},
+  touch: {x: 0, y: 0, id: -1, scrollDecided: false}
 };
 
 function firstTouchAction(ev) {
@@ -213,9 +212,11 @@ function untrackDocument(stateObj) {
   stateObj.upfn = null;
 }
 
-// use a document-wide touchend listener to start the ghost-click prevention mechanism
-// Use passive event listeners, if supported, to not affect scrolling performance
-document.addEventListener('touchend', ignoreMouse, SUPPORTS_PASSIVE ? {passive: true} : false);
+// use a document-wide touchend listener to start the ghost-click prevention
+// mechanism Use passive event listeners, if supported, to not affect scrolling
+// performance
+document.addEventListener(
+    'touchend', ignoreMouse, SUPPORTS_PASSIVE ? {passive: true} : false);
 
 export const gestures = {};
 export const recognizers = [];
@@ -244,7 +245,7 @@ export function deepTargetFind(x, y) {
 export function _findOriginalTarget(ev) {
   // shadowdom
   if (ev.composedPath) {
-    return /** @type {EventTarget} */(ev.composedPath()[0]);
+    return /** @type {EventTarget} */ (ev.composedPath()[0]);
   }
   // shadydom
   return ev.target;
@@ -265,7 +266,8 @@ export function _handleNative(ev) {
   if (!ev[HANDLED_OBJ]) {
     ev[HANDLED_OBJ] = {};
     if (type.slice(0, 5) === 'touch') {
-      ev = /** @type {TouchEvent} */(ev); // eslint-disable-line no-self-assign
+      ev =
+          /** @type {TouchEvent} */ (ev);  // eslint-disable-line no-self-assign
       let t = ev.changedTouches[0];
       if (type === 'touchstart') {
         // only handle the first finger
@@ -367,7 +369,8 @@ export function _add(node, evType, handler) {
   }
   for (let i = 0, dep, gd; i < deps.length; i++) {
     dep = deps[i];
-    // don't add mouse handlers on iOS because they cause gray selection overlays
+    // don't add mouse handlers on iOS because they cause gray selection
+    // overlays
     if (IS_TOUCH_ONLY && MOUSE_EVENTS.indexOf(dep) > -1 && dep !== 'click') {
       continue;
     }
@@ -436,7 +439,7 @@ export function setTouchAction(node, value) {
 }
 
 export function _fire(target, type, detail) {
-  let ev = new Event(type, { bubbles: true, cancelable: true, composed: true });
+  let ev = new Event(type, {bubbles: true, cancelable: true, composed: true});
   ev.detail = detail;
   target.dispatchEvent(ev);
   // forward `preventDefault` in a clean way
@@ -466,16 +469,10 @@ export function resetMouseCanceller() {
 register({
   name: 'downup',
   deps: ['mousedown', 'touchstart', 'touchend'],
-  flow: {
-    start: ['mousedown', 'touchstart'],
-    end: ['mouseup', 'touchend']
-  },
+  flow: {start: ['mousedown', 'touchstart'], end: ['mouseup', 'touchend']},
   emits: ['down', 'up'],
 
-  info: {
-    movefn: null,
-    upfn: null
-  },
+  info: {movefn: null, upfn: null},
 
   /** @this {GestureRecognizer} */
   reset: function() {
@@ -544,10 +541,7 @@ register({
   name: 'track',
   touchAction: 'none',
   deps: ['mousedown', 'touchstart', 'touchmove', 'touchend'],
-  flow: {
-    start: ['mousedown', 'touchstart'],
-    end: ['mouseup', 'touchend']
-  },
+  flow: {start: ['mousedown', 'touchstart'], end: ['mouseup', 'touchend']},
   emits: ['track'],
 
   info: {
@@ -610,7 +604,9 @@ register({
       let x = e.clientX, y = e.clientY;
       if (self.hasMovedEnough(x, y)) {
         // first move is 'start', subsequent moves are 'move', mouseup is 'end'
-        self.info.state = self.info.started ? (e.type === 'mouseup' ? 'end' : 'track') : 'start';
+        self.info.state = self.info.started ?
+            (e.type === 'mouseup' ? 'end' : 'track') :
+            'start';
         if (self.info.state === 'start') {
           // if and only if tracking, always prevent tap
           prevent('tap');
@@ -717,16 +713,9 @@ register({
 register({
   name: 'tap',
   deps: ['mousedown', 'click', 'touchstart', 'touchend'],
-  flow: {
-    start: ['mousedown', 'touchstart'],
-    end: ['click', 'touchend']
-  },
+  flow: {start: ['mousedown', 'touchstart'], end: ['click', 'touchend']},
   emits: ['tap'],
-  info: {
-    x: NaN,
-    y: NaN,
-    prevent: false
-  },
+  info: {x: NaN, y: NaN, prevent: false},
   /** @this {GestureRecognizer} */
   reset: function() {
     this.info.x = NaN;
@@ -778,18 +767,19 @@ register({
   forward: function(e, preventer) {
     let dx = Math.abs(e.clientX - this.info.x);
     let dy = Math.abs(e.clientY - this.info.y);
-    // find original target from `preventer` for TouchEvents, or `e` for MouseEvents
+    // find original target from `preventer` for TouchEvents, or `e` for
+    // MouseEvents
     let t = _findOriginalTarget((preventer || e));
-    // dx,dy can be NaN if `click` has been simulated and there was no `down` for `start`
-    if (isNaN(dx) || isNaN(dy) || (dx <= TAP_DISTANCE && dy <= TAP_DISTANCE) || isSyntheticClick(e)) {
+    // dx,dy can be NaN if `click` has been simulated and there was no `down`
+    // for `start`
+    if (isNaN(dx) || isNaN(dy) || (dx <= TAP_DISTANCE && dy <= TAP_DISTANCE) ||
+        isSyntheticClick(e)) {
       // prevent taps from being generated if an event has canceled them
       if (!this.info.prevent) {
-        _fire(t, 'tap', {
-          x: e.clientX,
-          y: e.clientY,
-          sourceEvent: e,
-          preventer: preventer
-        });
+        _fire(
+            t,
+            'tap',
+            {x: e.clientX, y: e.clientY, sourceEvent: e, preventer: preventer});
       }
     }
   }

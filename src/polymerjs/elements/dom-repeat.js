@@ -1,12 +1,12 @@
-import { Element } from '../../polymer-element.js';
-import { TemplateInstanceBase as TemplateInstanceBase$0, Templatize } from '../utils/templatize.js';
-import { Debouncer } from '../utils/debounce.js';
-import { enqueueDebouncer, flush } from '../utils/flush.js';
-import { OptionalMutableData } from '../mixins/mutable-data.js';
-import { matches, translate } from '../utils/path.js';
-import { timeOut, microTask } from '../utils/async.js';
+import {Element} from '../../polymer-element.js';
+import {OptionalMutableData} from '../mixins/mutable-data.js';
+import {microTask, timeOut} from '../utils/async.js';
+import {Debouncer} from '../utils/debounce.js';
+import {enqueueDebouncer, flush} from '../utils/flush.js';
+import {matches, translate} from '../utils/path.js';
+import {TemplateInstanceBase as TemplateInstanceBase$0, Templatize} from '../utils/templatize.js';
 
-let TemplateInstanceBase = TemplateInstanceBase$0; // eslint-disable-line
+let TemplateInstanceBase = TemplateInstanceBase$0;  // eslint-disable-line
 
 /**
  * @constructor
@@ -54,8 +54,9 @@ const domRepeatBase = OptionalMutableData(Element);
  * </dom-module>
  * ```
  *
- * Notifications for changes to items sub-properties will be forwarded to template
- * instances, which will update via the normal structured data notification system.
+ * Notifications for changes to items sub-properties will be forwarded to
+ * template instances, which will update via the normal structured data
+ * notification system.
  *
  * Mutations to the `items` array itself should be made using the Array
  * mutation API's on `Polymer.Base` (`push`, `pop`, `splice`, `shift`,
@@ -75,17 +76,18 @@ const domRepeatBase = OptionalMutableData(Element);
  * This may be useful for manipulating instance data of event targets obtained
  * by event handlers on parents of the `dom-repeat` (event delegation).
  *
- * A view-specific filter/sort may be applied to each `dom-repeat` by supplying a
- * `filter` and/or `sort` property.  This may be a string that names a function on
- * the host, or a function may be assigned to the property directly.  The functions
- * should implemented following the standard `Array` filter/sort API.
+ * A view-specific filter/sort may be applied to each `dom-repeat` by supplying
+ * a `filter` and/or `sort` property.  This may be a string that names a
+ * function on the host, or a function may be assigned to the property directly.
+ * The functions should implemented following the standard `Array` filter/sort
+ * API.
  *
- * In order to re-run the filter or sort functions based on changes to sub-fields
- * of `items`, the `observe` property may be set as a space-separated list of
- * `item` sub-fields that should cause a re-filter/sort when modified.  If
- * the filter or sort function depends on properties not contained in `items`,
- * the user should observe changes to those properties and call `render` to update
- * the view based on the dependency change.
+ * In order to re-run the filter or sort functions based on changes to
+ * sub-fields of `items`, the `observe` property may be set as a space-separated
+ * list of `item` sub-fields that should cause a re-filter/sort when modified.
+ * If the filter or sort function depends on properties not contained in
+ * `items`, the user should observe changes to those properties and call
+ * `render` to update the view based on the dependency change.
  *
  * For example, for an `dom-repeat` with a filter of the following:
  *
@@ -111,15 +113,17 @@ const domRepeatBase = OptionalMutableData(Element);
  *   items in an array.
  */
 class DomRepeat extends domRepeatBase {
-
   // Not needed to find template; can be removed once the analyzer
   // can find the tag name from customElements.define call
-  static get is() { return 'dom-repeat'; }
+  static get is() {
+    return 'dom-repeat';
+  }
 
-  static get template() { return null; }
+  static get template() {
+    return null;
+  }
 
   static get properties() {
-
     /**
      * Fired whenever DOM is added or removed by this template (by
      * default, rendering occurs lazily).  To force immediate rendering, call
@@ -128,139 +132,106 @@ class DomRepeat extends domRepeatBase {
      * @event dom-change
      */
     return {
-
       /**
-       * An array containing items determining how many instances of the template
-       * to stamp and that that each template instance should bind to.
+       * An array containing items determining how many instances of the
+       * template to stamp and that that each template instance should bind to.
        */
-      items: {
-        type: Array
-      },
+      items: {type: Array},
 
-      /**
-       * The name of the variable to add to the binding scope for the array
-       * element associated with a given template instance.
-       */
-      as: {
-        type: String,
-        value: 'item'
-      },
+          /**
+           * The name of the variable to add to the binding scope for the array
+           * element associated with a given template instance.
+           */
+          as: {type: String, value: 'item'},
 
-      /**
-       * The name of the variable to add to the binding scope with the index
-       * of the instance in the sorted and filtered list of rendered items.
-       * Note, for the index in the `this.items` array, use the value of the
-       * `itemsIndexAs` property.
-       */
-      indexAs: {
-        type: String,
-        value: 'index'
-      },
+          /**
+           * The name of the variable to add to the binding scope with the index
+           * of the instance in the sorted and filtered list of rendered items.
+           * Note, for the index in the `this.items` array, use the value of the
+           * `itemsIndexAs` property.
+           */
+          indexAs: {type: String, value: 'index'},
 
-      /**
-       * The name of the variable to add to the binding scope with the index
-       * of the instance in the `this.items` array. Note, for the index of
-       * this instance in the sorted and filtered list of rendered items,
-       * use the value of the `indexAs` property.
-       */
-      itemsIndexAs: {
-        type: String,
-        value: 'itemsIndex'
-      },
+          /**
+           * The name of the variable to add to the binding scope with the index
+           * of the instance in the `this.items` array. Note, for the index of
+           * this instance in the sorted and filtered list of rendered items,
+           * use the value of the `indexAs` property.
+           */
+          itemsIndexAs: {type: String, value: 'itemsIndex'},
 
-      /**
-       * A function that should determine the sort order of the items.  This
-       * property should either be provided as a string, indicating a method
-       * name on the element's host, or else be an actual function.  The
-       * function should match the sort function passed to `Array.sort`.
-       * Using a sort function has no effect on the underlying `items` array.
-       */
-      sort: {
-        type: Function,
-        observer: '__sortChanged'
-      },
+          /**
+           * A function that should determine the sort order of the items.  This
+           * property should either be provided as a string, indicating a method
+           * name on the element's host, or else be an actual function.  The
+           * function should match the sort function passed to `Array.sort`.
+           * Using a sort function has no effect on the underlying `items`
+           * array.
+           */
+          sort: {type: Function, observer: '__sortChanged'},
 
-      /**
-       * A function that can be used to filter items out of the view.  This
-       * property should either be provided as a string, indicating a method
-       * name on the element's host, or else be an actual function.  The
-       * function should match the sort function passed to `Array.filter`.
-       * Using a filter function has no effect on the underlying `items` array.
-       */
-      filter: {
-        type: Function,
-        observer: '__filterChanged'
-      },
+          /**
+           * A function that can be used to filter items out of the view.  This
+           * property should either be provided as a string, indicating a method
+           * name on the element's host, or else be an actual function.  The
+           * function should match the sort function passed to `Array.filter`.
+           * Using a filter function has no effect on the underlying `items`
+           * array.
+           */
+          filter: {type: Function, observer: '__filterChanged'},
 
-      /**
-       * When using a `filter` or `sort` function, the `observe` property
-       * should be set to a space-separated list of the names of item
-       * sub-fields that should trigger a re-sort or re-filter when changed.
-       * These should generally be fields of `item` that the sort or filter
-       * function depends on.
-       */
-      observe: {
-        type: String,
-        observer: '__observeChanged'
-      },
+          /**
+           * When using a `filter` or `sort` function, the `observe` property
+           * should be set to a space-separated list of the names of item
+           * sub-fields that should trigger a re-sort or re-filter when changed.
+           * These should generally be fields of `item` that the sort or filter
+           * function depends on.
+           */
+          observe: {type: String, observer: '__observeChanged'},
 
-      /**
-       * When using a `filter` or `sort` function, the `delay` property
-       * determines a debounce time after a change to observed item
-       * properties that must pass before the filter or sort is re-run.
-       * This is useful in rate-limiting shuffing of the view when
-       * item changes may be frequent.
-       */
-      delay: Number,
+          /**
+           * When using a `filter` or `sort` function, the `delay` property
+           * determines a debounce time after a change to observed item
+           * properties that must pass before the filter or sort is re-run.
+           * This is useful in rate-limiting shuffing of the view when
+           * item changes may be frequent.
+           */
+          delay: Number,
 
-      /**
-       * Count of currently rendered items after `filter` (if any) has been applied.
-       * If "chunking mode" is enabled, `renderedItemCount` is updated each time a
-       * set of template instances is rendered.
-       *
-       */
-      renderedItemCount: {
-        type: Number,
-        notify: true,
-        readOnly: true
-      },
+          /**
+           * Count of currently rendered items after `filter` (if any) has been
+           * applied. If "chunking mode" is enabled, `renderedItemCount` is
+           * updated each time a set of template instances is rendered.
+           *
+           */
+          renderedItemCount: {type: Number, notify: true, readOnly: true},
 
-      /**
-       * Defines an initial count of template instances to render after setting
-       * the `items` array, before the next paint, and puts the `dom-repeat`
-       * into "chunking mode".  The remaining items will be created and rendered
-       * incrementally at each animation frame therof until all instances have
-       * been rendered.
-       */
-      initialCount: {
-        type: Number,
-        observer: '__initializeChunking'
-      },
+          /**
+           * Defines an initial count of template instances to render after
+           * setting the `items` array, before the next paint, and puts the
+           * `dom-repeat` into "chunking mode".  The remaining items will be
+           * created and rendered incrementally at each animation frame therof
+           * until all instances have been rendered.
+           */
+          initialCount: {type: Number, observer: '__initializeChunking'},
 
-      /**
-       * When `initialCount` is used, this property defines a frame rate to
-       * target by throttling the number of instances rendered each frame to
-       * not exceed the budget for the target frame rate.  Setting this to a
-       * higher number will allow lower latency and higher throughput for
-       * things like event handlers, but will result in a longer time for the
-       * remaining items to complete rendering.
-       */
-      targetFramerate: {
-        type: Number,
-        value: 20
-      },
+          /**
+           * When `initialCount` is used, this property defines a frame rate to
+           * target by throttling the number of instances rendered each frame to
+           * not exceed the budget for the target frame rate.  Setting this to a
+           * higher number will allow lower latency and higher throughput for
+           * things like event handlers, but will result in a longer time for
+           * the remaining items to complete rendering.
+           */
+          targetFramerate: {type: Number, value: 20},
 
-      _targetFrameTime: {
-        type: Number,
-        computed: '__computeFrameTime(targetFramerate)'
-      }
-
+          _targetFrameTime:
+              {type: Number, computed: '__computeFrameTime(targetFramerate)'}
     }
-
   }
 
   static get observers() {
-    return [ '__itemsChanged(items.*)' ]
+    return ['__itemsChanged(items.*)']
   }
 
   constructor() {
@@ -283,7 +254,7 @@ class DomRepeat extends domRepeatBase {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.__isDetached = true;
-    for (let i=0; i<this.__instances.length; i++) {
+    for (let i = 0; i < this.__instances.length; i++) {
       this.__detachInstance(i);
     }
   }
@@ -294,7 +265,7 @@ class DomRepeat extends domRepeatBase {
     if (this.__isDetached) {
       this.__isDetached = false;
       let parent = this.parentNode;
-      for (let i=0; i<this.__instances.length; i++) {
+      for (let i = 0; i < this.__instances.length; i++) {
         this.__attachInstance(i, parent);
       }
     }
@@ -335,7 +306,7 @@ class DomRepeat extends domRepeatBase {
          */
         forwardHostProp: function(prop, value) {
           let i$ = this.__instances;
-          for (let i=0, inst; (i<i$.length) && (inst=i$[i]); i++) {
+          for (let i = 0, inst; (i < i$.length) && (inst = i$[i]); i++) {
             inst.forwardHostProp(prop, value);
           }
         },
@@ -371,8 +342,9 @@ class DomRepeat extends domRepeatBase {
 
   __sortChanged(sort) {
     let methodHost = this.__getMethodHost();
-    this.__sortFn = sort && (typeof sort == 'function' ? sort :
-      function() { return methodHost[sort].apply(methodHost, arguments); });
+    this.__sortFn = sort && (typeof sort == 'function' ? sort : function() {
+                      return methodHost[sort].apply(methodHost, arguments);
+                    });
     if (this.items) {
       this.__debounceRender(this.__render);
     }
@@ -380,15 +352,17 @@ class DomRepeat extends domRepeatBase {
 
   __filterChanged(filter) {
     let methodHost = this.__getMethodHost();
-    this.__filterFn = filter && (typeof filter == 'function' ? filter :
-      function() { return methodHost[filter].apply(methodHost, arguments); });
+    this.__filterFn =
+        filter && (typeof filter == 'function' ? filter : function() {
+          return methodHost[filter].apply(methodHost, arguments);
+        });
     if (this.items) {
       this.__debounceRender(this.__render);
     }
   }
 
   __computeFrameTime(rate) {
-    return Math.ceil(1000/rate);
+    return Math.ceil(1000 / rate);
   }
 
   __initializeChunking() {
@@ -408,7 +382,7 @@ class DomRepeat extends domRepeatBase {
   }
 
   __requestRenderChunk() {
-    requestAnimationFrame(()=>this.__renderChunk());
+    requestAnimationFrame(() => this.__renderChunk());
   }
 
   __renderChunk() {
@@ -424,8 +398,8 @@ class DomRepeat extends domRepeatBase {
   }
 
   __observeChanged() {
-    this.__observePaths = this.observe &&
-      this.observe.replace('.*', '.').split(' ');
+    this.__observePaths =
+        this.observe && this.observe.replace('.*', '.').split(' ');
   }
 
   __itemsChanged(change) {
@@ -446,7 +420,7 @@ class DomRepeat extends domRepeatBase {
     if (this.__observePaths) {
       path = path.substring(path.indexOf('.') + 1);
       let paths = this.__observePaths;
-      for (let i=0; i<paths.length; i++) {
+      for (let i = 0; i < paths.length; i++) {
         if (path.indexOf(paths[i]) === 0) {
           this.__debounceRender(this.__render, this.delay);
           return true;
@@ -461,9 +435,9 @@ class DomRepeat extends domRepeatBase {
    */
   __debounceRender(fn, delay = 0) {
     this.__renderDebouncer = Debouncer.debounce(
-          this.__renderDebouncer
-        , delay > 0 ? timeOut.after(delay) : microTask
-        , fn.bind(this));
+        this.__renderDebouncer,
+        delay > 0 ? timeOut.after(delay) : microTask,
+        fn.bind(this));
     enqueueDebouncer(this.__renderDebouncer);
   }
 
@@ -495,10 +469,8 @@ class DomRepeat extends domRepeatBase {
     // Set rendered item count
     this._setRenderedItemCount(this.__instances.length);
     // Notify users
-    this.dispatchEvent(new CustomEvent('dom-change', {
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+        new CustomEvent('dom-change', {bubbles: true, composed: true}));
     // Check to see if we need to render more items
     this.__tryRenderChunk();
   }
@@ -506,13 +478,13 @@ class DomRepeat extends domRepeatBase {
   __applyFullRefresh() {
     let items = this.items || [];
     let isntIdxToItemsIdx = new Array(items.length);
-    for (let i=0; i<items.length; i++) {
+    for (let i = 0; i < items.length; i++) {
       isntIdxToItemsIdx[i] = i;
     }
     // Apply user filter
     if (this.__filterFn) {
-      isntIdxToItemsIdx = isntIdxToItemsIdx.filter((i, idx, array) =>
-        this.__filterFn(items[i], idx, array));
+      isntIdxToItemsIdx = isntIdxToItemsIdx.filter(
+          (i, idx, array) => this.__filterFn(items[i], idx, array));
     }
     // Apply user sort
     if (this.__sortFn) {
@@ -523,7 +495,7 @@ class DomRepeat extends domRepeatBase {
     let instIdx = 0;
     // Generate instances and assign items
     const limit = Math.min(isntIdxToItemsIdx.length, this.__limit);
-    for (; instIdx<limit; instIdx++) {
+    for (; instIdx < limit; instIdx++) {
       let inst = this.__instances[instIdx];
       let itemIdx = isntIdxToItemsIdx[instIdx];
       let item = items[itemIdx];
@@ -538,14 +510,14 @@ class DomRepeat extends domRepeatBase {
       }
     }
     // Remove any extra instances from previous state
-    for (let i=this.__instances.length-1; i>=instIdx; i--) {
+    for (let i = this.__instances.length - 1; i >= instIdx; i--) {
       this.__detachAndRemoveInstance(i);
     }
   }
 
   __detachInstance(idx) {
     let inst = this.__instances[idx];
-    for (let i=0; i<inst.children.length; i++) {
+    for (let i = 0; i < inst.children.length; i++) {
       let el = inst.children[i];
       inst.root.appendChild(el);
     }
@@ -594,7 +566,7 @@ class DomRepeat extends domRepeatBase {
 
   // Implements extension point from Templatize mixin
   _showHideChildren(hidden) {
-    for (let i=0; i<this.__instances.length; i++) {
+    for (let i = 0; i < this.__instances.length; i++) {
       this.__instances[i]._showHideChildren(hidden);
     }
   }
@@ -602,12 +574,12 @@ class DomRepeat extends domRepeatBase {
   // Called as a side effect of a host items.<key>.<path> path change,
   // responsible for notifying item.<path> changes to inst for key
   __handleItemPath(path, value) {
-    let itemsPath = path.slice(6); // 'items.'.length == 6
+    let itemsPath = path.slice(6);  // 'items.'.length == 6
     let dot = itemsPath.indexOf('.');
     let itemsIdx = dot < 0 ? itemsPath : itemsPath.substring(0, dot);
     // If path was index into array...
     if (itemsIdx == parseInt(itemsIdx, 10)) {
-      let itemSubPath = dot < 0 ? '' : itemsPath.substring(dot+1);
+      let itemSubPath = dot < 0 ? '' : itemsPath.substring(dot + 1);
       // If the path is observed, it will trigger a full refresh
       this.__handleObservedPaths(itemSubPath);
       // Note, even if a rull refresh is triggered, always do the path
@@ -677,9 +649,8 @@ class DomRepeat extends domRepeatBase {
   modelForElement(el) {
     return Templatize.modelForElement(this.template, el);
   }
-
 }
 
 customElements.define(DomRepeat.is, DomRepeat);
 
-export { DomRepeat };
+export {DomRepeat};

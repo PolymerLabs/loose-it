@@ -11,7 +11,7 @@ function flushDebouncers() {
   while (debouncerQueue.length) {
     try {
       debouncerQueue.shift().flush();
-    } catch(e) {
+    } catch (e) {
       setTimeout(() => {
         throw e;
       });

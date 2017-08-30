@@ -1,5 +1,6 @@
 import '../utils/boot.js';
-import { resolveUrl, pathFromUrl } from '../utils/resolve-url.js';
+
+import {pathFromUrl, resolveUrl} from '../utils/resolve-url.js';
 
 let modules = {};
 let lcModules = {};
@@ -40,8 +41,9 @@ function styleOutsideTemplateCheck(inst) {
  * @unrestricted
  */
 class DomModule extends HTMLElement {
-
-  static get observedAttributes() { return ['id'] }
+  static get observedAttributes() {
+    return ['id']
+  }
 
   /**
    * Retrieves the element specified by the css `selector` in the module
@@ -85,9 +87,10 @@ class DomModule extends HTMLElement {
       // note: assetpath set via an attribute must be relative to this
       // element's location; accomodate polyfilled HTMLImports
       const owner = window.HTMLImports && HTMLImports.importForElement ?
-        HTMLImports.importForElement(this) || document : this.ownerDocument;
-      const url = resolveUrl(
-        this.getAttribute('assetpath') || '', owner.baseURI);
+          HTMLImports.importForElement(this) || document :
+          this.ownerDocument;
+      const url =
+          resolveUrl(this.getAttribute('assetpath') || '', owner.baseURI);
       this.__assetpath = pathFromUrl(url);
     }
     return this.__assetpath;
@@ -117,4 +120,4 @@ DomModule.prototype['modules'] = modules;
 
 customElements.define('dom-module', DomModule);
 
-export { DomModule };
+export {DomModule};

@@ -1,9 +1,9 @@
-import { Element } from '../../polymer-element.js';
-import { Templatize } from '../utils/templatize.js';
-import { Debouncer } from '../utils/debounce.js';
-import { enqueueDebouncer, flush } from '../utils/flush.js';
-import { microTask } from '../utils/async.js';
-import { root as root$0 } from '../utils/path.js';
+import {Element} from '../../polymer-element.js';
+import {microTask} from '../utils/async.js';
+import {Debouncer} from '../utils/debounce.js';
+import {enqueueDebouncer, flush} from '../utils/flush.js';
+import {root as root$0} from '../utils/path.js';
+import {Templatize} from '../utils/templatize.js';
 
 /**
  * The `<dom-if>` element will stamp a light-dom `<template>` child when
@@ -28,17 +28,18 @@ import { root as root$0 } from '../utils/path.js';
  *   template content based on a boolean flag.
  */
 class DomIf extends Element {
-
   // Not needed to find template; can be removed once the analyzer
   // can find the tag name from customElements.define call
-  static get is() { return 'dom-if'; }
+  static get is() {
+    return 'dom-if';
+  }
 
-  static get template() { return null; }
+  static get template() {
+    return null;
+  }
 
   static get properties() {
-
     return {
-
       /**
        * Fired whenever DOM is added or removed/hidden by this template (by
        * default, rendering occurs lazily).  To force immediate rendering, call
@@ -66,9 +67,7 @@ class DomIf extends Element {
         type: Boolean,
         observer: '__debounceRender'
       }
-
     }
-
   }
 
   constructor() {
@@ -98,9 +97,7 @@ class DomIf extends Element {
     //    (or clear) its template's pending host properties before creating
     //    the instance would also avoid the problem.
     this.__renderDebouncer = Debouncer.debounce(
-          this.__renderDebouncer
-        , microTask
-        , () => this.__render());
+        this.__renderDebouncer, microTask, () => this.__render());
     enqueueDebouncer(this.__renderDebouncer);
   }
 
@@ -145,10 +142,8 @@ class DomIf extends Element {
       this._showHideChildren();
     }
     if (this.if != this._lastIf) {
-      this.dispatchEvent(new CustomEvent('dom-change', {
-        bubbles: true,
-        composed: true
-      }));
+      this.dispatchEvent(
+          new CustomEvent('dom-change', {bubbles: true, composed: true}));
       this._lastIf = this.if;
     }
   }
@@ -190,7 +185,8 @@ class DomIf extends Element {
                 // forwarding due to if being false, note the invalidated
                 // properties so `__syncHostProperties` can sync them the next
                 // time `if` becomes true
-                this.__invalidProps = this.__invalidProps || Object.create(null);
+                this.__invalidProps =
+                    this.__invalidProps || Object.create(null);
                 this.__invalidProps[root$0(prop)] = true;
               }
             }
@@ -206,8 +202,8 @@ class DomIf extends Element {
         if (c$ && c$.length) {
           // Detect case where dom-if was re-attached in new position
           let lastChild = this.previousSibling;
-          if (lastChild !== c$[c$.length-1]) {
-            for (let i=0, n; (i<c$.length) && (n=c$[i]); i++) {
+          if (lastChild !== c$[c$.length - 1]) {
+            for (let i = 0, n; (i < c$.length) && (n = c$[i]); i++) {
               parentNode.insertBefore(n, this);
             }
           }
@@ -234,7 +230,7 @@ class DomIf extends Element {
       if (c$ && c$.length) {
         // use first child parent, for case when dom-if may have been detached
         let parent = c$[0].parentNode;
-        for (let i=0, n; (i<c$.length) && (n=c$[i]); i++) {
+        for (let i = 0, n; (i < c$.length) && (n = c$[i]); i++) {
           parent.removeChild(n);
         }
       }
@@ -249,9 +245,8 @@ class DomIf extends Element {
       this.__instance._showHideChildren(hidden);
     }
   }
-
 }
 
 customElements.define(DomIf.is, DomIf);
 
-export { DomIf };
+export {DomIf};

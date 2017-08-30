@@ -1,7 +1,7 @@
-import { Element } from '../../polymer-element.js';
-import { dedupingMixin } from '../utils/mixin.js';
-import { calculateSplices } from '../utils/array-splice.js';
-import { ElementMixin } from '../mixins/element-mixin.js';
+import {Element} from '../../polymer-element.js';
+import {ElementMixin} from '../mixins/element-mixin.js';
+import {calculateSplices} from '../utils/array-splice.js';
+import {dedupingMixin} from '../utils/mixin.js';
 
 /**
  * Element mixin for recording dynamic associations between item paths in a
@@ -21,8 +21,8 @@ import { ElementMixin } from '../mixins/element-mixin.js';
  * @mixinFunction
  * @appliesMixin Polymer.ElementMixin
  * @memberof Polymer
- * @summary Element mixin for recording dynamic associations between item paths in a
- * master `items` array and a `selected` array
+ * @summary Element mixin for recording dynamic associations between item paths
+ * in a master `items` array and a `selected` array
  */
 let ArraySelectorMixin = dedupingMixin(superClass => {
 
@@ -40,11 +40,8 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
    * @unrestricted
    */
   class ArraySelectorMixin extends elementBase {
-
     static get properties() {
-
       return {
-
         /**
          * An array containing items from which selection will be made.
          */
@@ -52,46 +49,36 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
           type: Array,
         },
 
-        /**
-         * When `true`, multiple items may be selected at once (in this case,
-         * `selected` is an array of currently selected items).  When `false`,
-         * only one item may be selected at a time.
-         */
-        multi: {
-          type: Boolean,
-          value: false,
-        },
+            /**
+             * When `true`, multiple items may be selected at once (in this
+             * case, `selected` is an array of currently selected items).  When
+             * `false`, only one item may be selected at a time.
+             */
+            multi: {
+              type: Boolean,
+              value: false,
+            },
 
-        /**
-         * When `multi` is true, this is an array that contains any selected.
-         * When `multi` is false, this is the currently selected item, or `null`
-         * if no item is selected.
-         * @type {?(Object|Array<!Object>)}
-         */
-        selected: {
-          type: Object,
-          notify: true
-        },
+            /**
+             * When `multi` is true, this is an array that contains any
+             * selected. When `multi` is false, this is the currently selected
+             * item, or `null` if no item is selected.
+             * @type {?(Object|Array<!Object>)}
+             */
+            selected: {type: Object, notify: true},
 
-        /**
-         * When `multi` is false, this is the currently selected item, or `null`
-         * if no item is selected.
-         * @type {?Object}
-         */
-        selectedItem: {
-          type: Object,
-          notify: true
-        },
+            /**
+             * When `multi` is false, this is the currently selected item, or
+             * `null` if no item is selected.
+             * @type {?Object}
+             */
+            selectedItem: {type: Object, notify: true},
 
-        /**
-         * When `true`, calling `select` on an item that is already selected
-         * will deselect the item.
-         */
-        toggle: {
-          type: Boolean,
-          value: false
-        }
-
+            /**
+             * When `true`, calling `select` on an item that is already selected
+             * will deselect the item.
+             */
+            toggle: {type: Boolean, value: false}
       }
     }
 
@@ -124,8 +111,8 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
         this.__lastItems = newItems;
         this.__lastMulti = multi;
       } else if (itemsInfo.path == 'items.splices') {
-        // Case 2 - got specific splice information describing the array mutation:
-        // deselect any removed items and adjust selected indices
+        // Case 2 - got specific splice information describing the array
+        // mutation: deselect any removed items and adjust selected indices
         this.__applySplices(itemsInfo.value.indexSplices);
       } else {
         // Case 3 - an array element was changed, so deselect the previous
@@ -141,7 +128,7 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
     __applySplices(splices) {
       let selected = this.__selectedMap;
       // Adjust selected indices and mark removals
-      for (let i=0; i<splices.length; i++) {
+      for (let i = 0; i < splices.length; i++) {
         let s = splices[i];
         selected.forEach((idx, item) => {
           if (idx < s.index) {
@@ -154,7 +141,7 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
             selected.set(item, -1);
           }
         });
-        for (let j=0; j<s.addedCount; j++) {
+        for (let j = 0; j < s.addedCount; j++) {
           let idx = s.index + j;
           if (selected.has(this.items[idx])) {
             selected.set(this.items[idx], idx);
@@ -209,8 +196,7 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
       // order: selected array index
       this.__selectedMap = new Map();
       // Initialize selection
-      this.selected = this.multi ? [] : null
-      this.selectedItem = null;
+      this.selected = this.multi ? [] : null this.selectedItem = null;
     }
 
     /**
@@ -316,14 +302,13 @@ let ArraySelectorMixin = dedupingMixin(superClass => {
         this.deselectIndex(idx);
       }
     }
-
   }
 
   return ArraySelectorMixin;
 
 });
 
-export { ArraySelectorMixin };
+export {ArraySelectorMixin};
 
 /**
  * @constructor
@@ -361,7 +346,8 @@ let baseArraySelector = ArraySelectorMixin(Element);
  *         <button on-click="toggleSelection">Select</button>
  *     </template>
  *
- *     <array-selector id="selector" items="{{employees}}" selected="{{selected}}" multi toggle></array-selector>
+ *     <array-selector id="selector" items="{{employees}}"
+ * selected="{{selected}}" multi toggle></array-selector>
  *
  *     <div> Selected employees: </div>
  *     <template is="dom-repeat" items="{{selected}}">
@@ -402,7 +388,9 @@ let baseArraySelector = ArraySelectorMixin(Element);
 class ArraySelector extends baseArraySelector {
   // Not needed to find template; can be removed once the analyzer
   // can find the tag name from customElements.define call
-  static get is() { return 'array-selector' }
+  static get is() {
+    return 'array-selector'
+  }
 }
 customElements.define(ArraySelector.is, ArraySelector);
-export { ArraySelector };
+export {ArraySelector};

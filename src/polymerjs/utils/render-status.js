@@ -24,7 +24,7 @@ function flushQueue(queue) {
 }
 
 function runQueue(queue) {
-  for (let i=0, l=queue.length; i < l; i++) {
+  for (let i = 0, l = queue.length; i < l; i++) {
     callMethod(queue.shift());
   }
 }
@@ -35,7 +35,7 @@ function callMethod(info) {
   const args = info[2];
   try {
     callback.apply(context, args);
-  } catch(e) {
+  } catch (e) {
     setTimeout(() => {
       throw e;
     })
@@ -64,4 +64,4 @@ export function afterNextRender(context, callback, args) {
   afterRenderQueue.push([context, callback, args]);
 }
 
-export { flush };
+export {flush};

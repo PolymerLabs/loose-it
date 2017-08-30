@@ -1,7 +1,8 @@
 import '../utils/boot.js';
-import { dedupingMixin } from '../utils/mixin.js';
+
+import {microTask} from '../utils/async.js';
 import * as caseMap$0 from '../utils/case-map.js';
-import { microTask } from '../utils/async.js';
+import {dedupingMixin} from '../utils/mixin.js';
 
 let caseMap = caseMap$0;
 
@@ -14,7 +15,7 @@ const nativeProperties = {};
 let proto = HTMLElement.prototype;
 while (proto) {
   let props = Object.getOwnPropertyNames(proto);
-  for (let i=0; i<props.length; i++) {
+  for (let i = 0; i < props.length; i++) {
     nativeProperties[props[i]] = true;
   }
   proto = Object.getPrototypeOf(proto);
@@ -46,7 +47,8 @@ function saveAccessorValue(model, property) {
         // Adding accessor to proto; save proto's value for instance-time use
         if (!model.__dataProto) {
           model.__dataProto = {};
-        } else if (!model.hasOwnProperty(JSCompiler_renameProperty('__dataProto', model))) {
+        } else if (!model.hasOwnProperty(
+                       JSCompiler_renameProperty('__dataProto', model))) {
           model.__dataProto = Object.create(model.__dataProto);
         }
         model.__dataProto[property] = value;
@@ -65,7 +67,6 @@ export const PropertyAccessors = dedupingMixin(superClass => {
    * @unrestricted
    */
   class PropertyAccessors extends superClass {
-
     /**
      * Generates property accessors for all attributes in the standard
      * static `observedAttributes` array.
@@ -76,7 +77,7 @@ export const PropertyAccessors = dedupingMixin(superClass => {
      */
     static createPropertiesForAttributes() {
       let a$ = this.observedAttributes;
-      for (let i=0; i < a$.length; i++) {
+      for (let i = 0; i < a$.length; i++) {
         this.prototype._createPropertyAccessor(caseMap.dashToCamelCase(a$[i]));
       }
     }
@@ -231,8 +232,8 @@ export const PropertyAccessors = dedupingMixin(superClass => {
     _propertyToAttribute(property, attribute, value) {
       this.__serializing = true;
       value = (arguments.length < 3) ? this[property] : value;
-      this._valueToNodeAttribute(this, value,
-        attribute || caseMap.camelToDashCase(property));
+      this._valueToNodeAttribute(
+          this, value, attribute || caseMap.camelToDashCase(property));
       this.__serializing = false;
     }
 
@@ -279,7 +280,7 @@ export const PropertyAccessors = dedupingMixin(superClass => {
           } else if (value) {
             try {
               return JSON.stringify(value);
-            } catch(x) {
+            } catch (x) {
               return '';
             }
           }
@@ -322,18 +323,19 @@ export const PropertyAccessors = dedupingMixin(superClass => {
 
         case Object:
           try {
-            outValue = JSON.parse(/** @type string */(value));
-          } catch(x) {
+            outValue = JSON.parse(/** @type string */ (value));
+          } catch (x) {
             // allow non-JSON literals like Strings and Numbers
           }
           break;
 
         case Array:
           try {
-            outValue = JSON.parse(/** @type string */(value));
-          } catch(x) {
+            outValue = JSON.parse(/** @type string */ (value));
+          } catch (x) {
             outValue = null;
-            console.warn(`Polymer::Attributes: couldn't decode Array as JSON: ${value}`);
+            console.warn(
+                `Polymer::Attributes: couldn't decode Array as JSON: ${value}`);
           }
           break;
 
@@ -386,9 +388,10 @@ export const PropertyAccessors = dedupingMixin(superClass => {
             return this.__data[property];
           },
           /** @this {PropertyAccessors} */
-          set: readOnly ? function() {} : function(value) {
-            this._setProperty(property, value);
-          }
+          set: readOnly ? function() {} :
+                          function(value) {
+                            this._setProperty(property, value);
+                          }
           /* eslint-enable */
         });
       }
@@ -545,7 +548,10 @@ export const PropertyAccessors = dedupingMixin(superClass => {
      *   in `changedProps`
      * @protected
      */
-    _propertiesChanged(currentProps, changedProps, oldProps) { // eslint-disable-line no-unused-vars
+    _propertiesChanged(
+        currentProps,
+        changedProps,
+        oldProps) {  // eslint-disable-line no-unused-vars
     }
 
     /**
@@ -569,13 +575,11 @@ export const PropertyAccessors = dedupingMixin(superClass => {
      */
     _shouldPropertyChange(property, value, old) {
       return (
-        // Strict equality check
-        (old !== value &&
-         // This ensures (old==NaN, value==NaN) always returns false
-         (old === old || value === value))
-      );
+          // Strict equality check
+          (old !== value &&
+           // This ensures (old==NaN, value==NaN) always returns false
+           (old === old || value === value)));
     }
-
   }
 
   return PropertyAccessors;

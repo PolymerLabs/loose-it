@@ -1,6 +1,7 @@
 import './boot.js';
-import { PropertyEffects } from '../mixins/property-effects.js';
-import { MutableData } from '../mixins/mutable-data.js';
+
+import {MutableData} from '../mixins/mutable-data.js';
+import {PropertyEffects} from '../mixins/property-effects.js';
 
 // Base class for HTMLTemplateElement extension that has property effects
 // machinery for propagating host properties to children. This is an ES5
@@ -11,13 +12,12 @@ let newInstance = null;
  * @constructor
  * @extends {HTMLTemplateElement}
  */
-function HTMLTemplateElementExtension() { return newInstance; }
-HTMLTemplateElementExtension.prototype = Object.create(HTMLTemplateElement.prototype, {
-  constructor: {
-    value: HTMLTemplateElementExtension,
-    writable: true
-  }
-});
+function HTMLTemplateElementExtension() {
+  return newInstance;
+}
+HTMLTemplateElementExtension.prototype = Object.create(
+    HTMLTemplateElement.prototype,
+    {constructor: {value: HTMLTemplateElementExtension, writable: true}});
 /**
  * @constructor
  * @implements {Polymer_PropertyEffects}
@@ -59,7 +59,7 @@ class TemplateInstanceBase extends base {
     this.root = this._stampTemplate(this.__dataHost);
     // Save list of stamped children
     let children = this.children = [];
-    for (let n = this.root.firstChild; n; n=n.nextSibling) {
+    for (let n = this.root.firstChild; n; n = n.nextSibling) {
       children.push(n);
       n.__templatizeInstance = this;
     }
@@ -137,7 +137,7 @@ class TemplateInstanceBase extends base {
    */
   _showHideChildren(hide) {
     let c = this.children;
-    for (let i=0; i<c.length; i++) {
+    for (let i = 0; i < c.length; i++) {
       let n = c[i];
       // Ignore non-changes
       if (Boolean(hide) != Boolean(n.__hideTemplateChildren__)) {
@@ -171,8 +171,8 @@ class TemplateInstanceBase extends base {
    * @override
    */
   _setUnmanagedPropertyToNode(node, prop, value) {
-    if (node.__hideTemplateChildren__ &&
-        node.nodeType == Node.TEXT_NODE && prop == 'textContent') {
+    if (node.__hideTemplateChildren__ && node.nodeType == Node.TEXT_NODE &&
+        prop == 'textContent') {
       node.__polymerTextContent__ = value;
     } else {
       super._setUnmanagedPropertyToNode(node, prop, value);
@@ -189,13 +189,13 @@ class TemplateInstanceBase extends base {
     let model = this.__parentModel;
     if (!model) {
       let options;
-      model = this
-      do {
+      model = this do {
         // A template instance's `__dataHost` is a <template>
         // `model.__dataHost.__dataHost` is the template's host
         model = model.__dataHost.__dataHost;
-      } while ((options = model.__templatizeOptions) && !options.parentModel)
-      this.__parentModel = model;
+      }
+      while ((options = model.__templatizeOptions) && !options.parentModel)
+        this.__parentModel = model;
     }
     return model;
   }
@@ -235,13 +235,13 @@ function findMethodHost(template) {
  */
 function createTemplatizerClass(template, templateInfo, options) {
   // Anonymous class created by the templatize
-  let base = options.mutableData ?
-    MutableTemplateInstanceBase : TemplateInstanceBase;
+  let base =
+      options.mutableData ? MutableTemplateInstanceBase : TemplateInstanceBase;
   /**
    * @constructor
    * @extends {base}
    */
-  let klass = class extends base { }
+  let klass = class extends base {}
   klass.prototype.__templatizeOptions = options;
   klass.prototype._bindTemplate(template);
   addNotifyEffects(klass, template, templateInfo, options);
@@ -259,14 +259,15 @@ function addPropagateEffects(template, templateInfo, options) {
     if (!klass) {
       let base = options.mutableData ? MutableDataTemplate : DataTemplate;
       klass = templateInfo.templatizeTemplateClass =
-        class TemplatizedTemplate extends base {}
+          class TemplatizedTemplate extends base {}
       // Add template - >instances effects
       // and host <- template effects
       let hostProps = templateInfo.hostProps;
       for (let prop in hostProps) {
-        klass.prototype._addPropertyEffect('_host_' + prop,
-          klass.prototype.PROPERTY_EFFECT_TYPES.PROPAGATE,
-          {fn: createForwardHostPropEffect(prop, userForwardHostProp)});
+        klass.prototype._addPropertyEffect(
+            '_host_' + prop,
+            klass.prototype.PROPERTY_EFFECT_TYPES.PROPAGATE,
+            {fn: createForwardHostPropEffect(prop, userForwardHostProp)});
         klass.prototype._createNotifyingProperty('_host_' + prop);
       }
     }
@@ -289,8 +290,10 @@ function addPropagateEffects(template, templateInfo, options) {
 
 function createForwardHostPropEffect(hostProp, userForwardHostProp) {
   return function forwardHostProp(template, prop, props) {
-    userForwardHostProp.call(template.__templatizeOwner,
-      prop.substring('_host_'.length), props[prop]);
+    userForwardHostProp.call(
+        template.__templatizeOwner,
+        prop.substring('_host_'.length),
+        props[prop]);
   }
 }
 
@@ -300,30 +303,33 @@ function addNotifyEffects(klass, template, templateInfo, options) {
     delete hostProps[iprop];
     let userNotifyInstanceProp = options.notifyInstanceProp;
     if (userNotifyInstanceProp) {
-      klass.prototype._addPropertyEffect(iprop,
-        klass.prototype.PROPERTY_EFFECT_TYPES.NOTIFY,
-        {fn: createNotifyInstancePropEffect(iprop, userNotifyInstanceProp)});
+      klass.prototype._addPropertyEffect(
+          iprop,
+          klass.prototype.PROPERTY_EFFECT_TYPES.NOTIFY,
+          {fn: createNotifyInstancePropEffect(iprop, userNotifyInstanceProp)});
     }
   }
   if (options.forwardHostProp && template.__dataHost) {
     for (let hprop in hostProps) {
-      klass.prototype._addPropertyEffect(hprop,
-        klass.prototype.PROPERTY_EFFECT_TYPES.NOTIFY,
-        {fn: createNotifyHostPropEffect()})
+      klass.prototype._addPropertyEffect(
+          hprop,
+          klass.prototype.PROPERTY_EFFECT_TYPES.NOTIFY,
+          {fn: createNotifyHostPropEffect()})
     }
   }
 }
 
 function createNotifyInstancePropEffect(instProp, userNotifyInstanceProp) {
   return function notifyInstanceProp(inst, prop, props) {
-    userNotifyInstanceProp.call(inst.__templatizeOwner,
-      inst, prop, props[prop]);
+    userNotifyInstanceProp.call(
+        inst.__templatizeOwner, inst, prop, props[prop]);
   }
 }
 
 function createNotifyHostPropEffect() {
   return function notifyHostProp(inst, prop, props) {
-    inst.__dataHost._setPendingPropertyOrPath('_host_' + prop, props[prop], true, true);
+    inst.__dataHost._setPendingPropertyOrPath(
+        '_host_' + prop, props[prop], true, true);
   }
 }
 
@@ -431,7 +437,7 @@ const Templatize = {
    * @suppress {invalidCasts}
    */
   templatize(template, owner, options) {
-    options = /** @type {!TemplatizeOptions} */(options || {});
+    options = /** @type {!TemplatizeOptions} */ (options || {});
     if (template.__templatizeOwner) {
       throw new Error('A <template> can only be templatized once');
     }
@@ -452,7 +458,7 @@ const Templatize = {
     klass.prototype.__dataHost = template;
     klass.prototype.__templatizeOwner = owner;
     klass.prototype.__hostProps = templateInfo.hostProps;
-    return /** @type {function(new:TemplateInstanceBase)} */(klass);
+    return /** @type {function(new:TemplateInstanceBase)} */ (klass);
   },
 
   /**
@@ -500,5 +506,5 @@ const Templatize = {
   }
 }
 
-export { Templatize };
-export { TemplateInstanceBase };
+export {Templatize};
+export {TemplateInstanceBase};

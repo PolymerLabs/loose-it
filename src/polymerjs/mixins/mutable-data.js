@@ -1,4 +1,4 @@
-import { dedupingMixin } from '../utils/mixin.js';
+import {dedupingMixin} from '../utils/mixin.js';
 
 // Common implementation for mixin & behavior
 function mutablePropertyChange(inst, property, value, old, mutableData) {
@@ -33,8 +33,8 @@ export const MutableData = dedupingMixin(superClass => {
      * strict equality checking for Objects and Arrays.
      *
      * This method pulls the value to dirty check against from the `__dataTemp`
-     * cache (rather than the normal `__data` cache) for Objects.  Since the temp
-     * cache is cleared at the end of a turn, this implementation allows
+     * cache (rather than the normal `__data` cache) for Objects.  Since the
+     * temp cache is cleared at the end of a turn, this implementation allows
      * side-effects of deep object changes to be processed by re-setting the
      * same object (using the temp cache as an in-turn backstop to prevent
      * cycles due to 2-way notification).
@@ -48,7 +48,6 @@ export const MutableData = dedupingMixin(superClass => {
     _shouldPropertyChange(property, value, old) {
       return mutablePropertyChange(this, property, value, old, true);
     }
-
   }
   /** @type {boolean} */
   MutableData.prototype.mutableData = false;
@@ -65,7 +64,6 @@ export const OptionalMutableData = dedupingMixin(superClass => {
    * @implements {Polymer_OptionalMutableData}
    */
   class OptionalMutableData extends superClass {
-
     static get properties() {
       return {
         /**
@@ -96,7 +94,8 @@ export const OptionalMutableData = dedupingMixin(superClass => {
      * @protected
      */
     _shouldPropertyChange(property, value, old) {
-      return mutablePropertyChange(this, property, value, old, this.mutableData);
+      return mutablePropertyChange(
+          this, property, value, old, this.mutableData);
     }
   }
 

@@ -12,7 +12,7 @@ function whenImportsReady(cb) {
 
 export const importHref = function(href, onload, onerror, optAsync) {
   let link = /** @type {HTMLLinkElement} */
-    (document.head.querySelector('link[href="' + href + '"][import-href]'));
+      (document.head.querySelector('link[href="' + href + '"][import-href]'));
   if (!link) {
     link = /** @type {HTMLLinkElement} */ (document.createElement('link'));
     link.rel = 'import';
@@ -30,8 +30,7 @@ export const importHref = function(href, onload, onerror, optAsync) {
   let cleanup = function() {
     link.removeEventListener('load', loadListener);
     link.removeEventListener('error', errorListener);
-  }
-  let loadListener = function(event) {
+  } let loadListener = function(event) {
     cleanup();
     // In case of a successful load, cache the load event on the link so
     // that it can be used to short-circuit this method in the future when
@@ -61,8 +60,8 @@ export const importHref = function(href, onload, onerror, optAsync) {
   link.addEventListener('error', errorListener);
   if (link.parentNode == null) {
     document.head.appendChild(link);
-  // if the link already loaded, dispatch a fake load event
-  // so that listeners are called and get a proper event argument.
+    // if the link already loaded, dispatch a fake load event
+    // so that listeners are called and get a proper event argument.
   } else if (link.__dynamicImportLoaded) {
     link.dispatchEvent(new Event('load'));
   }

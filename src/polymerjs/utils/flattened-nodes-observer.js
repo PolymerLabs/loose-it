@@ -1,6 +1,6 @@
 import './boot.js';
-import { calculateSplices } from './array-splice.js';
-import { microTask } from './async.js';
+import {calculateSplices} from './array-splice.js';
+import {microTask} from './async.js';
 
 /**
  * Returns true if `node` is a slot element
@@ -37,30 +37,34 @@ function isSlot(node) {
  * "flattened nodes" on a given `node`.
  */
 class FlattenedNodesObserver {
-
   /**
    * Returns the list of flattened nodes for the given `node`.
    * This list consists of a node's children and, for any children
    * that are `<slot>` elements, the expanded flattened list of `assignedNodes`.
-   * For example, if the observed node has children `<a></a><slot></slot><b></b>`
-   * and the `<slot>` has one `<div>` assigned to it, then the flattened
-   * nodes list is `<a></a><div></div><b></b>`. If the `<slot>` has other
+   * For example, if the observed node has children
+   * `<a></a><slot></slot><b></b>` and the `<slot>` has one `<div>` assigned to
+   * it, then the flattened nodes list is `<a></a><div></div><b></b>`. If the
+   * `<slot>` has other
    * `<slot>` elements assigned to it, these are flattened as well.
    *
    * @param {HTMLElement|HTMLSlotElement} node The node for which to return the list of flattened nodes.
    * @return {Array} The list of flattened nodes for the given `node`.
-  */
+   */
   static getFlattenedNodes(node) {
     if (isSlot(node)) {
-      return /** @type {HTMLSlotElement} */ (node).assignedNodes({flatten: true});
+      return /** @type {HTMLSlotElement} */ (node).assignedNodes(
+          {flatten: true});
     } else {
-      return Array.from(node.childNodes).map(node => {
-        if (isSlot(node)) {
-          return /** @type {HTMLSlotElement} */ (node).assignedNodes({flatten: true});
-        } else {
-          return [node];
-        }
-      }).reduce((a, b) => a.concat(b), []);
+      return Array.from(node.childNodes)
+          .map(node => {
+            if (isSlot(node)) {
+              return /** @type {HTMLSlotElement} */ (node).assignedNodes(
+                  {flatten: true});
+            } else {
+              return [node];
+            }
+          })
+          .reduce((a, b) => a.concat(b), []);
     }
   }
 
@@ -68,7 +72,7 @@ class FlattenedNodesObserver {
    * @param {Node} target Node on which to listen for changes.
    * @param {Function} callback Function called when there are additions
    * or removals from the target's list of flattened nodes.
-  */
+   */
   constructor(target, callback) {
     /** @type {MutationObserver} */
     this._shadyChildrenObserver = null;
@@ -83,15 +87,15 @@ class FlattenedNodesObserver {
     /** @type {function()} */
     this._boundSchedule = () => {
       this._schedule();
-    }
-    this.connect();
+    } this.connect();
     this._schedule();
   }
 
   /**
    * Activates an observer. This method is automatically called when
    * a `FlattenedNodesObserver` is created. It should only be called to
-   * re-activate an observer that has been deactivated via the `disconnect` method.
+   * re-activate an observer that has been deactivated via the `disconnect`
+   * method.
    */
   connect() {
     if (isSlot(this._target)) {
@@ -100,14 +104,13 @@ class FlattenedNodesObserver {
       this._listenSlots(this._target.children);
       if (window.ShadyDOM) {
         this._shadyChildrenObserver =
-          ShadyDOM.observeChildren(this._target, (mutations) => {
-            this._processMutations(mutations);
-          });
+            ShadyDOM.observeChildren(this._target, (mutations) => {
+              this._processMutations(mutations);
+            });
       } else {
-        this._nativeChildrenObserver =
-          new MutationObserver((mutations) => {
-            this._processMutations(mutations);
-          });
+        this._nativeChildrenObserver = new MutationObserver((mutations) => {
+          this._processMutations(mutations);
+        });
         this._nativeChildrenObserver.observe(this._target, {childList: true});
       }
     }
@@ -150,7 +153,7 @@ class FlattenedNodesObserver {
 
   _processSlotMutations(mutations) {
     if (mutations) {
-      for (let i=0; i < mutations.length; i++) {
+      for (let i = 0; i < mutations.length; i++) {
         let mutation = mutations[i];
         if (mutation.addedNodes) {
           this._listenSlots(mutation.addedNodes);
@@ -183,23 +186,18 @@ class FlattenedNodesObserver {
       this._processSlotMutations(this._shadyChildrenObserver.takeRecords());
     }
     this._scheduled = false;
-    let info = {
-      target: this._target,
-      addedNodes: [],
-      removedNodes: []
-    };
+    let info = {target: this._target, addedNodes: [], removedNodes: []};
     let newNodes = this.constructor.getFlattenedNodes(this._target);
-    let splices = calculateSplices(newNodes,
-      this._effectiveNodes);
+    let splices = calculateSplices(newNodes, this._effectiveNodes);
     // process removals
-    for (let i=0, s; (i<splices.length) && (s=splices[i]); i++) {
-      for (let j=0, n; (j < s.removed.length) && (n=s.removed[j]); j++) {
+    for (let i = 0, s; (i < splices.length) && (s = splices[i]); i++) {
+      for (let j = 0, n; (j < s.removed.length) && (n = s.removed[j]); j++) {
         info.removedNodes.push(n);
       }
     }
     // process adds
-    for (let i=0, s; (i<splices.length) && (s=splices[i]); i++) {
-      for (let j=s.index; j < s.index + s.addedCount; j++) {
+    for (let i = 0, s; (i < splices.length) && (s = splices[i]); i++) {
+      for (let j = s.index; j < s.index + s.addedCount; j++) {
         info.addedNodes.push(newNodes[j]);
       }
     }
@@ -214,7 +212,7 @@ class FlattenedNodesObserver {
   }
 
   _listenSlots(nodeList) {
-    for (let i=0; i < nodeList.length; i++) {
+    for (let i = 0; i < nodeList.length; i++) {
       let n = nodeList[i];
       if (isSlot(n)) {
         n.addEventListener('slotchange', this._boundSchedule);
@@ -223,14 +221,13 @@ class FlattenedNodesObserver {
   }
 
   _unlistenSlots(nodeList) {
-    for (let i=0; i < nodeList.length; i++) {
+    for (let i = 0; i < nodeList.length; i++) {
       let n = nodeList[i];
       if (isSlot(n)) {
         n.removeEventListener('slotchange', this._boundSchedule);
       }
     }
   }
-
 }
 
-export { FlattenedNodesObserver };
+export {FlattenedNodesObserver};

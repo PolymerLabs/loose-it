@@ -1,7 +1,8 @@
 import '../utils/boot.js';
-import { PropertyEffects } from '../mixins/property-effects.js';
-import { OptionalMutableData } from '../mixins/mutable-data.js';
-import { GestureEventListeners } from '../mixins/gesture-event-listeners.js';
+
+import {GestureEventListeners} from '../mixins/gesture-event-listeners.js';
+import {OptionalMutableData} from '../mixins/mutable-data.js';
+import {PropertyEffects} from '../mixins/property-effects.js';
 
 /**
  * @constructor
@@ -11,9 +12,7 @@ import { GestureEventListeners } from '../mixins/gesture-event-listeners.js';
  * @implements {Polymer_GestureEventListeners}
  */
 const domBindBase =
-  GestureEventListeners(
-    OptionalMutableData(
-      PropertyEffects(HTMLElement)));
+    GestureEventListeners(OptionalMutableData(PropertyEffects(HTMLElement)));
 
 /**
  * Custom element to allow using Polymer's template features (data binding,
@@ -36,8 +35,9 @@ const domBindBase =
  *   binding, declarative event listeners, etc.) in the main document.
  */
 class DomBind extends domBindBase {
-
-  static get observedAttributes() { return ['mutable-data'] }
+  static get observedAttributes() {
+    return ['mutable-data']
+  }
 
   constructor() {
     super();
@@ -65,7 +65,7 @@ class DomBind extends domBindBase {
 
   __removeChildren() {
     if (this.__children) {
-      for (let i=0; i<this.__children.length; i++) {
+      for (let i = 0; i < this.__children.length; i++) {
         this.root.appendChild(this.__children[i]);
       }
     }
@@ -78,11 +78,13 @@ class DomBind extends domBindBase {
   render() {
     let template;
     if (!this.__children) {
-      template = /** @type {HTMLTemplateElement} */(template || this.querySelector('template'));
+      template = /** @type {HTMLTemplateElement} */ (
+          template || this.querySelector('template'));
       if (!template) {
         // Wait until childList changes and template should be there by then
         let observer = new MutationObserver(() => {
-          template = /** @type {HTMLTemplateElement} */(this.querySelector('template'));
+          template = /** @type {HTMLTemplateElement} */ (
+              this.querySelector('template'));
           if (template) {
             observer.disconnect();
             this.render();
@@ -96,18 +98,15 @@ class DomBind extends domBindBase {
       this.root = this._stampTemplate(template);
       this.$ = this.root.$;
       this.__children = [];
-      for (let n=this.root.firstChild; n; n=n.nextSibling) {
+      for (let n = this.root.firstChild; n; n = n.nextSibling) {
         this.__children[this.__children.length] = n;
       }
       this._enableProperties();
     }
     this.__insertChildren();
-    this.dispatchEvent(new CustomEvent('dom-change', {
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+        new CustomEvent('dom-change', {bubbles: true, composed: true}));
   }
-
 }
 
 customElements.define('dom-bind', DomBind);

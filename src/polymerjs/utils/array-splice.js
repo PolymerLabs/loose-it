@@ -1,11 +1,7 @@
 import './boot.js';
 
 function newSplice(index, removed, addedCount) {
-  return {
-    index: index,
-    removed: removed,
-    addedCount: addedCount
-  };
+  return {index: index, removed: removed, addedCount: addedCount};
 }
 
 const EDIT_LEAVE = 0;
@@ -24,8 +20,8 @@ const EDIT_DELETE = 3;
 // With 1-edit updates, the shortest path would be just to update all seven
 // characters. With 2-edit updates, we delete 4, leave 3, and add 4. This
 // leaves the substring '123' intact.
-function calcEditDistances(current, currentStart, currentEnd,
-                            old, oldStart, oldEnd) {
+function calcEditDistances(
+    current, currentStart, currentEnd, old, oldStart, oldEnd) {
   // "Deletion" columns
   let rowCount = oldEnd - oldStart + 1;
   let columnCount = currentEnd - currentStart + 1;
@@ -150,8 +146,7 @@ function spliceOperationsFromEditDistances(distances) {
  * the array of removed items from this location; `addedCount` the number
  * of items added at this location.
  */
-function calcSplices(current, currentStart, currentEnd,
-                      old, oldStart, oldEnd) {
+function calcSplices(current, currentStart, currentEnd, old, oldStart, oldEnd) {
   let prefixCount = 0;
   let suffixCount = 0;
   let splice;
@@ -176,20 +171,19 @@ function calcSplices(current, currentStart, currentEnd,
     while (oldStart < oldEnd)
       splice.removed.push(old[oldStart++]);
 
-    return [ splice ];
+    return [splice];
   } else if (oldStart == oldEnd)
-    return [ newSplice(currentStart, [], currentEnd - currentStart) ];
+    return [newSplice(currentStart, [], currentEnd - currentStart)];
 
-  let ops = spliceOperationsFromEditDistances(
-      calcEditDistances(current, currentStart, currentEnd,
-                             old, oldStart, oldEnd));
+  let ops = spliceOperationsFromEditDistances(calcEditDistances(
+      current, currentStart, currentEnd, old, oldStart, oldEnd));
 
   splice = undefined;
   let splices = [];
   let index = currentStart;
   let oldIndex = oldStart;
   for (let i = 0; i < ops.length; i++) {
-    switch(ops[i]) {
+    switch (ops[i]) {
       case EDIT_LEAVE:
         if (splice) {
           splices.push(splice);
@@ -250,12 +244,11 @@ function sharedSuffix(current, old, searchLength) {
 }
 
 function calculateSplices(current, previous) {
-  return calcSplices(current, 0, current.length, previous, 0,
-                          previous.length);
+  return calcSplices(current, 0, current.length, previous, 0, previous.length);
 }
 
 function equals(currentValue, previousValue) {
   return currentValue === previousValue;
 }
 
-export { calculateSplices };
+export {calculateSplices};

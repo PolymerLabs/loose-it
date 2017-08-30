@@ -13,8 +13,10 @@ import File = require('vinyl');
 
 // Patch up the global scope to be able to import Polymer code
 class MutationObserver {
-  observe() {}
-  disconnect() {}
+  observe() {
+  }
+  disconnect() {
+  }
 }
 
 const dom = new JSDOM();

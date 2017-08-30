@@ -27,17 +27,15 @@ export function translate(base, newBase, path) {
 }
 
 export function matches(base, path) {
-  return (base === path) ||
-         isAncestor(base, path) ||
-         isDescendant(base, path);
+  return (base === path) || isAncestor(base, path) || isDescendant(base, path);
 }
 
 export function normalize(path) {
   if (Array.isArray(path)) {
     let parts = [];
-    for (let i=0; i<path.length; i++) {
+    for (let i = 0; i < path.length; i++) {
       let args = path[i].toString().split('.');
-      for (let j=0; j<args.length; j++) {
+      for (let j = 0; j < args.length; j++) {
         parts.push(args[j]);
       }
     }
@@ -58,7 +56,7 @@ export function get(root, path, info) {
   let prop = root;
   let parts = split(path);
   // Loop over path parts[0..n-1] and dereference
-  for (let i=0; i<parts.length; i++) {
+  for (let i = 0; i < parts.length; i++) {
     if (!prop) {
       return;
     }
@@ -74,10 +72,10 @@ export function get(root, path, info) {
 export function set(root, path, value) {
   let prop = root;
   let parts = split(path);
-  let last = parts[parts.length-1];
+  let last = parts[parts.length - 1];
   if (parts.length > 1) {
     // Loop over path parts[0..n-2] and dereference
-    for (let i=0; i<parts.length-1; i++) {
+    for (let i = 0; i < parts.length - 1; i++) {
       let part = parts[i];
       prop = prop[part];
       if (!prop) {

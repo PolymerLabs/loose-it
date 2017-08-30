@@ -44,7 +44,6 @@ function resolveUrl(url, baseURI) {
   resolveDoc.base.href = baseURI;
   resolveDoc.anchor.href = url;
   return resolveDoc.anchor.href || url;
-
 }
 
 /**
@@ -58,9 +57,8 @@ function resolveUrl(url, baseURI) {
  */
 function resolveCss(cssText, baseURI) {
   return cssText.replace(CSS_URL_RX, function(m, pre, url, post) {
-    return pre + '\'' +
-      resolveUrl(url.replace(/["']/g, ''), baseURI) +
-      '\'' + post;
+    return pre + '\'' + resolveUrl(url.replace(/["']/g, ''), baseURI) + '\'' +
+        post;
   });
 }
 
@@ -76,6 +74,6 @@ function pathFromUrl(url) {
   return url.substring(0, url.lastIndexOf('/') + 1);
 }
 
-export { resolveCss };
-export { resolveUrl };
-export { pathFromUrl };
+export {resolveCss};
+export {resolveUrl};
+export {pathFromUrl};

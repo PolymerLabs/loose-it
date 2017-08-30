@@ -1,5 +1,5 @@
 import '../../../../@webcomponents/shadycss/entrypoints/custom-style-interface.js';
-import { cssFromModules } from '../utils/style-gather.js';
+import {cssFromModules} from '../utils/style-gather.js';
 
 const attr = 'include';
 
@@ -42,7 +42,7 @@ class CustomStyle extends HTMLElement {
     if (this._style) {
       return this._style;
     }
-    const style = /** @type {HTMLStyleElement} */(this.querySelector('style'));
+    const style = /** @type {HTMLStyleElement} */ (this.querySelector('style'));
     if (!style) {
       return null;
     }
@@ -57,4 +57,4 @@ class CustomStyle extends HTMLElement {
 }
 
 window.customElements.define('custom-style', CustomStyle);
-export { CustomStyle };
+export {CustomStyle};

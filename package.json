@@ -8,7 +8,7 @@
   "scripts": {
     "lint": "gulp lint",
     "build": "gulp build",
-    "test": "gulp test lint",
+    "test": "gulp test",
     "prepublishOnly": "npm test",
     "format": "find src/ -iname '*.ts' -o -iname '*.js' | xargs clang-format --style=file -i",
     "test:watch": "watchy -w src/ -- npm test --loglevel=silent"
@@ -23,6 +23,7 @@
     "polymer-analyzer": "^2.2.2",
     "polymer-build": "^2.0.0",
     "polymer-project-config": "^3.4.0",
+    "puppeteer": "^0.10.2",
     "vinyl": "^2.1.0",
     "vinyl-fs": "^2.4.4"
   },

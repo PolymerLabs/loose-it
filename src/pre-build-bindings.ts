@@ -1,40 +1,16 @@
 import * as dom5 from 'dom5';
-import * as estree from 'estree';
-import {JSDOM} from 'jsdom';
+import * as espree from 'espree';
 import * as parse5 from 'parse5';
 import * as path from 'path';
-import {Analyzer, Document, ParsedHtmlDocument, PolymerElement} from 'polymer-analyzer';
+import {Analysis, Analyzer, Document, ParsedHtmlDocument, ParsedJavaScriptDocument, PolymerElement} from 'polymer-analyzer';
 import {FileMapUrlLoader} from 'polymer-build/lib/file-map-url-loader';
 import {pathFromUrl, urlFromPath} from 'polymer-build/lib/path-transformers';
 import {AsyncTransformStream} from 'polymer-build/lib/streams';
 import {ProjectConfig} from 'polymer-project-config';
 
+const puppeteer = require('puppeteer');
+
 import File = require('vinyl');
-
-// Patch up the global scope to be able to import Polymer code
-class MutationObserver {
-  observe() {
-  }
-  disconnect() {
-  }
-}
-
-const dom = new JSDOM();
-const window: any = dom.window;
-Object.assign(global, {
-  window: global,
-  HTMLElement: window.HTMLElement,
-  Node: window.Node,
-  customElements: {define() {}},
-  JSCompiler_renameProperty: () => {},
-  document: window.document,
-  MutationObserver,
-  requestAnimationFrame: setTimeout,
-  cancelAnimationFrame: clearTimeout
-});
-
-import {ElementMixin, finalizeProperties} from './polymerjs/mixins/element-mixin.js';
-import {EFFECT_FUNCTIONS} from './polymerjs/mixins/effect-functions.js';
 
 /**
  * Process a file stream and compute binding and property effect metadata of
@@ -52,23 +28,38 @@ export class PreBuildBindings extends AsyncTransformStream<File, File> {
   }
 
   protected async * _transformIter(files: AsyncIterable<File>) {
-    const htmlFileUrls = [];
-
     // Map all files; pass-through all non-HTML files.
     for await (const file of files) {
       const fileUrl = urlFromPath(this._config.root, file.path);
       this.files.set(fileUrl, file);
-      if (path.extname(file.path) !== '.html') {
-        yield file;
-      } else {
-        htmlFileUrls.push(fileUrl);
-      }
     }
 
-    // Analyze each HTML file and add prefetch links.
-    const analysis = await this._analyzer.analyze(htmlFileUrls);
+    const analysis =
+        await this._analyzer.analyze(Array.from(this.files.keys()));
+    const set = new Set<string>();
+    recursivelyObtainHTMLImports(
+        analysis,
+        path.relative(this._config.root, this._config.entrypoint),
+        set)
+    for (const file of new Set(
+             [...this.files.keys()].filter(i => !set.has(i)))) {
+      yield this.files.get(file);
+    }
 
-    for (const documentUrl of htmlFileUrls) {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
+    await page.goto(`file://${path.resolve(__dirname, '..', 'index.html')}`);
+
+    await page.evaluate(`
+      serializeRunTimeClosures = ${serializeRunTimeClosures.toString()};
+      stripUnnecessaryEffectData = ${stripUnnecessaryEffectData.toString()};
+      stripSerializedMetadata = ${stripSerializedMetadata.toString()};
+      serializeBindings = ${serializeBindings.toString()};
+      serializeEffects = ${serializeEffects.toString()};
+    `)
+
+    for (const documentUrl of set) {
       const document = analysis.getDocument(documentUrl);
       if (!(document instanceof Document)) {
         const message = document && document.message;
@@ -76,11 +67,34 @@ export class PreBuildBindings extends AsyncTransformStream<File, File> {
         continue;
       }
 
-      const html = insertPreBuiltMetadata(document);
-      const filePath = pathFromUrl(this._config.root, documentUrl);
-      yield new File({contents: new Buffer(html, 'utf-8'), path: filePath});
+      try {
+        const html = await insertPreBuiltMetadata(analysis, document, page);
+        const filePath = pathFromUrl(this._config.root, documentUrl);
+        yield new File({contents: new Buffer(html, 'utf-8'), path: filePath});
+      } catch (e) {
+        console.log(e);
+      }
     }
+
+    browser.close();
   }
+}
+
+function recursivelyObtainHTMLImports(
+    analysis: Analysis, url: string, set: Set<string>) {
+  const document = analysis.getDocument(url);
+
+  if (!(document instanceof Document)) {
+    const message = document && document.message;
+    console.warn(`Unable to get document ${url}: ${message}`);
+    return;
+  }
+  const imports = document.getFeatures({kind: 'html-import'});
+
+  for (const himport of imports) {
+    recursivelyObtainHTMLImports(analysis, himport.url, set)
+  }
+  set.add(url);
 }
 
 /**
@@ -90,7 +104,29 @@ export class PreBuildBindings extends AsyncTransformStream<File, File> {
  *
  * @param document The document that contains the Polymer elements
  */
-function insertPreBuiltMetadata(document: Document): string {
+async function insertPreBuiltMetadata(
+    analysis: Analysis, document: Document, page: any): Promise<string> {
+  const scripts = document.getFeatures();
+  for (const script of scripts) {
+    // If any user error occurs, silently swallow it. Might be the case for any
+    // imperative code in for example index.html, or an external dependency that
+    // could not be found.
+    try {
+      if (script.kinds.has('js-document')) {
+        const parsedDocument =
+            (script as any).parsedDocument as ParsedJavaScriptDocument;
+
+        await page.evaluate(parsedDocument.contents);
+      } else if (script.kinds.has('html-script')) {
+        const doc = analysis.getDocument((script as any).url) as any;
+
+        await page.evaluate(doc.parsedDocument.contents);
+      }
+    } catch (e) {
+      console.log(e.message)
+    }
+  }
+
   if (!(document.parsedDocument instanceof ParsedHtmlDocument)) {
     return document.parsedDocument.contents;
   }
@@ -98,53 +134,90 @@ function insertPreBuiltMetadata(document: Document): string {
   const elements = document.getFeatures({kind: 'polymer-element'});
 
   for (const element of elements) {
-    const template =
-        dom5.query(element.domModule, dom5.predicates.hasTagName('template'));
-    // Create the instance for every element, to avoid that all element metadata
-    // is installed on the same prototype
-    const ElementMixinInstance = ElementMixin(class {});
-    const domTemplate = parseElementTemplate(template, ElementMixinInstance);
+    if (!element.tagName) {
+      continue;
+    }
 
-    processElementProperties(element, ElementMixinInstance.prototype);
+    const jsDocument =
+        analysis.getDocumentContaining(element.sourceRange, document);
 
-    removePropertiesFromElementDefinition(element.astNode);
-    serializeBindingsToScriptElement(element, domTemplate._templateInfo);
-    replaceOriginalTemplate(template, domTemplate.content);
+    if (!(jsDocument.kinds.has('js-document'))) {
+      continue;
+    }
+    const parsedDocument =
+        jsDocument.parsedDocument as ParsedJavaScriptDocument;
+
+    let hasProperties = true;
+
+    if (element.domModule) {
+      const templateNode =
+          dom5.query(element.domModule, dom5.predicates.hasTagName('template'));
+      // To make sure that indices match up of `findTemplateNode` after
+      // minification of unrelated nodes, we must strip both text nodes and
+      // comments here.
+      // However, text nodes should only be removed if they are empty. As such,
+      // use the `strip-whitespace` option for that, while we can safely delete
+      // all comments with dom5.
+      dom5.setAttribute(templateNode, 'strip-whitespace', '');
+      dom5.nodeWalkAll(
+              templateNode,
+              dom5.isCommentNode,
+              [],
+              dom5.childNodesIncludeTemplate)
+          .forEach((node) => {
+            dom5.remove(node);
+          });
+      const content = parse5.serialize(element.domModule);
+
+      await page.evaluate(`
+        domModule = document.createElement('div');
+        domModule.innerHTML = \`<dom-module id="${element.tagName}">${
+          content.replace(/`/g, '\\`')}</dom-module>\`;
+        document.body.appendChild(domModule);
+      `);
+
+      // TODO(Tim): Figure out why _registered is not called by Polymer directly
+      const newTemplate: string = await page.evaluate(`
+        ctor = customElements.get('${element.tagName}');
+        window.onerror = function(error) {
+          window.lastError = error;
+        }
+        ctor.prototype._registered && ctor.prototype._registered();
+        ctor.finalize();
+        ctor.prototype._bindTemplate(ctor.prototype._template);
+        window.lastError || ctor.prototype._template.innerHTML;
+      `);
+
+      const templateInfo: string = await page.evaluate(`
+        serializeBindings(ctor.prototype._template._templateInfo)
+      `);
+
+      const template =
+          dom5.query(element.domModule, dom5.predicates.hasTagName('template'));
+
+      serializeBindingsToScriptElement(element, parsedDocument, templateInfo);
+      replaceOriginalTemplate(template, newTemplate);
+    } else {
+      hasProperties = await page.evaluate(`
+        ctor = customElements.get('${element.tagName}');
+        if (ctor.finalize) {
+          ctor.finalize();
+          true
+        } else {
+          false;
+        }
+      `);
+    }
+
+    if (hasProperties) {
+      await processElementProperties(element, parsedDocument, page);
+      removePropertiesFromElementDefinition(element);
+    }
   }
 
   // Use stringify to make sure that the modifications to the JS AST of the
   // Polymer element are properly passed on in the stream
   return document.stringify();
-}
-
-/**
- * Parse the template using the run time instance and construct the domTemplate
- * that contains the templateInfo.
- *
- * @param template Template of the polymer element
- * @param ElementMixinInstance Run time instance to invoke `_parseTemplate` on
- */
-function parseElementTemplate(
-    template: parse5.ASTNode, ElementMixinInstance: any) {
-  const documentFragment =
-      parse5.treeAdapters.default.getTemplateContent(template);
-  // Use a div rather than a document fragment, as a document fragment can not
-  // set innerHTML
-  const div = dom.window.document.createElement('div');
-  div.innerHTML = parse5.serialize(documentFragment);
-
-  // Mimic a regular template for `_parseTemplate`
-  const domTemplate = {
-    content: div,
-    hasAttribute() {
-      return false;
-    },
-    _templateInfo: false
-  };
-
-  ElementMixinInstance._parseTemplate(domTemplate, {});
-
-  return domTemplate;
 }
 
 /**
@@ -154,18 +227,12 @@ function parseElementTemplate(
  * @param element Element that contains the properties
  * @param prototype Prototype that the effect metadata is computed on
  */
-function processElementProperties(element: PolymerElement, prototype: any) {
-  const properties: any = {};
-
-  for (const [k, v] of element.properties.entries()) {
-    properties[k] = v;
-    if (v.observer) {
-      v.observer = v.observer.substring(1, v.observer.length - 1);
-    }
-  }
-
-  finalizeProperties(prototype, properties);
-  serializePropertyEffectsToScriptElement(element, prototype);
+async function processElementProperties(
+    element: PolymerElement, document: ParsedJavaScriptDocument, page: any) {
+  const propertyEffects = await page.evaluate(`
+    serializeEffects(ctor.prototype)
+  `);
+  serializePropertyEffectsToScriptElement(element, document, propertyEffects);
 }
 
 /**
@@ -175,16 +242,16 @@ function processElementProperties(element: PolymerElement, prototype: any) {
  * @param prototype Prototype that contains the computed effects
  */
 function serializePropertyEffectsToScriptElement(
-    element: PolymerElement, prototype: any) {
-  const serialized = serializeEffects(prototype);
+    element: PolymerElement,
+    document: ParsedJavaScriptDocument,
+    propertyEffects: string) {
+  const assignment =
+      espree
+          .parse(`Polymer.preBuiltEffects = Polymer.preBuiltEffects || {};
+      Polymer.preBuiltEffects['${element.tagName}'] = ${propertyEffects};`)
+          .body;
 
-  const script = dom5.constructors.element('script');
-  dom5.setTextContent(
-      script,
-      `Polymer.preBuiltEffects = Polymer.preBuiltEffects || {};
-Polymer.preBuiltEffects['${element.tagName}'] = ${serialized};`);
-
-  dom5.insertBefore(element.domModule, element.domModule.childNodes[0], script);
+  document.ast.body = assignment.concat(document.ast.body);
 }
 
 /**
@@ -193,7 +260,8 @@ Polymer.preBuiltEffects['${element.tagName}'] = ${serialized};`);
  *
  * @param astNode Node that defines the Polymer element
  */
-function removePropertiesFromElementDefinition(astNode: estree.Node) {
+function removePropertiesFromElementDefinition(element: PolymerElement) {
+  const astNode = element.astNode;
   if (astNode.type === 'CallExpression') {
     const argument = astNode.arguments[0];
 
@@ -202,8 +270,35 @@ function removePropertiesFromElementDefinition(astNode: estree.Node) {
         const property = argument.properties[i];
 
         if (property.key.type === 'Identifier' &&
-            property.key.name === 'properties') {
-          argument.properties.splice(i, 1);
+            property.key.name === 'properties' &&
+            property.value.type === 'ObjectExpression') {
+          for (let j = 0; j < property.value.properties.length; j++) {
+            const propertyDefinition = property.value.properties[j];
+
+            if (propertyDefinition.value.type === 'ObjectExpression') {
+              const propertyConfigurations =
+                  propertyDefinition.value.properties;
+
+              for (let k = 0; k < propertyConfigurations.length; k++) {
+                const propertyConfiguration = propertyConfigurations[k];
+
+                if (propertyConfiguration.key.name !== 'value' &&
+                    propertyConfiguration.key.name !== 'type') {
+                  // Decrement k to make sure that the next property is iterated
+                  // on
+                  propertyConfigurations.splice(k--, 1);
+                }
+              }
+
+              if (propertyConfigurations.length === 0) {
+                property.value.properties.splice(j--, 1);
+              }
+            }
+          }
+
+          if (property.value.properties.length === 0) {
+            argument.properties.splice(i, 1);
+          }
           break;
         }
       }
@@ -234,16 +329,16 @@ function removePropertiesFromElementDefinition(astNode: estree.Node) {
  * @param _templateInfo The computed bindings metadata
  */
 function serializeBindingsToScriptElement(
-    element: PolymerElement, _templateInfo: any) {
-  const script = dom5.constructors.element('script');
-  const serializedTemplateInfo = serializeBindings(_templateInfo);
+    element: PolymerElement,
+    document: ParsedJavaScriptDocument,
+    templateInfo: string) {
+  const assignment =
+      espree
+          .parse(`Polymer.PreBuiltBindings = Polymer.PreBuiltBindings || {};
+Polymer.PreBuiltBindings['${element.tagName}'] = ${templateInfo};`)
+          .body;
 
-  dom5.setTextContent(
-      script,
-      `Polymer.PreBuiltBindings = Polymer.PreBuiltBindings || {};
-Polymer.PreBuiltBindings['${element.tagName}'] = ${serializedTemplateInfo};`);
-
-  dom5.insertBefore(element.domModule, element.domModule.childNodes[0], script);
+  document.ast.body = assignment.concat(document.ast.body);
 }
 
 /**
@@ -339,13 +434,9 @@ function serializeBindings(templateInfo: any): string {
  * of
  * `_parseTemplate`
  */
-function replaceOriginalTemplate(template: parse5.ASTNode, content: Element) {
-  const replacedAst = parse5.parse(content.innerHTML);
+function replaceOriginalTemplate(template: parse5.ASTNode, content: string) {
+  const replacedAst = parse5.parse(content);
   dom5.removeFakeRootElements(replacedAst);
-  // parse5 trims whitespace before and after the HTML tree.
-  // To make sure that the indices still match up, insert a text node.
-  dom5.insertBefore(
-      replacedAst, replacedAst.childNodes[0], dom5.constructors.text(' '));
 
   const replacedTemplate = dom5.constructors.element('template');
   parse5.treeAdapters.default.setTemplateContent(replacedTemplate, replacedAst);
@@ -383,6 +474,10 @@ function serializeEffects(prototype: any): string {
       /"Polymer.EFFECT_FUNCTIONS.(\w+)"/mg, 'Polymer.EFFECT_FUNCTIONS.$1');
 }
 
+// Declare here to not generate any Typescript error for not finding
+// `Polymer.EFFECT_FUNCTIONS`
+let Polymer: any = {};
+
 /**
  * Traverse all property effects and replace the closure by the String
  * representation of the closure.
@@ -392,7 +487,7 @@ function serializeEffects(prototype: any): string {
 function serializeRunTimeClosures(propertyEffects: any[]) {
   for (const effects of propertyEffects) {
     for (const effect of effects) {
-      for (const [name, func] of Object.entries(EFFECT_FUNCTIONS)) {
+      for (const [name, func] of Object.entries(Polymer.EFFECT_FUNCTIONS)) {
         if (func === effect.fn) {
           effect.fn = `Polymer.EFFECT_FUNCTIONS.${name}`;
         }

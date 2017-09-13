@@ -1,12 +1,47 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+
 <dom-module id="my-element">
     <template>
 
     </template>
     <script>
+        /**
+         * @polymerBehavior foo
+         */
+        const foo = {
+            properties: {
+                foo: String,
+                propertyBinding: {
+                    type: String,
+                    observer: '_whatever'
+                }
+            },
+            attached: Polymer.Element ? null : function() {
+                // Note: the iron-form that this element belongs to will set this
+                // element's _parentForm property when handling this event.
+                this.fire('iron-form-element-register');
+              },
+              detached: Polymer.Element ? null : function() {
+                if (this._parentForm) {
+                  this._parentForm.fire('iron-form-element-unregister', {target: this});
+                }
+              }
+        };
+
         Polymer({
             is: 'my-element',
+            behaviors: [foo],
             properties: {
-                property: String
+                property: String,
+                propertyBinding: {
+                    type: String,
+                    reflectToAttribute: true,
+                    notify: true,
+                    observer: '_propertyChanged'
+                }
+            },
+            attached: function() {
+
             }
         })
     </script>

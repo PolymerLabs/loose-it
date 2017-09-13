@@ -26,7 +26,9 @@ const mergeStream = require('merge-stream');
 
 const testProjectRoot = path.resolve('test-fixtures/pre-build-bindings');
 
-suite('Prebuild bindings', () => {
+suite('Prebuild bindings', function() {
+
+  this.timeout(0);
 
   let project: PolymerProject;
 

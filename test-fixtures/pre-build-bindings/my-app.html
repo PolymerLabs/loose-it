@@ -8,14 +8,15 @@
             }
         </style>
         <div id="text-binding">[[textBinding]]</div>
-        <div>My-element: [[textBinding]]</div>
+        <div on-tap="_tapped">My-element: [[textBinding]]</div>
         <my-element property="[[propertyBinding]]" property-with-literal="literal + [[propertyBinding]]"></my-element>
         <template is="dom-if">
             <div>Inside template [[propertyBinding]]</div>
         </template>
     </template>
     <script>
-        class MyApp extends HTMLElement {
+        class MyApp extends Polymer.Element {
+            static get is() {return 'my-app';}
             static get properties() {
                 return {
                     textBinding: String,

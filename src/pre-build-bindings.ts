@@ -1,5 +1,6 @@
 import * as dom5 from 'dom5';
 import * as espree from 'espree';
+import * as fs from 'fs';
 import * as parse5 from 'parse5';
 import * as path from 'path';
 import {Analysis, Analyzer, Document, ParsedHtmlDocument, ParsedJavaScriptDocument, PolymerElement} from 'polymer-analyzer';
@@ -37,7 +38,7 @@ export class PreBuildBindings extends AsyncTransformStream<File, File> {
     const analysis =
         await this._analyzer.analyze(Array.from(this.files.keys()));
     const set = new Set<string>();
-    recursivelyObtainHTMLImports(
+    this.recursivelyObtainHTMLImports(
         analysis,
         path.relative(this._config.root, this._config.entrypoint),
         set)
@@ -72,30 +73,37 @@ export class PreBuildBindings extends AsyncTransformStream<File, File> {
         const filePath = pathFromUrl(this._config.root, documentUrl);
         yield new File({contents: new Buffer(html, 'utf-8'), path: filePath});
       } catch (e) {
-        console.log(e);
+        console.log(`Document "${documentUrl}" had error: ${e}`);
+        fs.writeFileSync('foo.html', await page.content())
       }
     }
 
     browser.close();
   }
+
+  recursivelyObtainHTMLImports(
+      analysis: Analysis,
+      url: string,
+      set: Set<string>) {
+    const document = analysis.getDocument(url);
+
+    if (!(document instanceof Document)) {
+      const message = document && document.message;
+      console.warn(`Unable to get document ${url}: ${message}`);
+      return;
+    }
+    const imports = document.getFeatures({kind: 'html-import'});
+
+    for (const himport of imports) {
+      // Make sure that absolute url are correctly resolved relative to the root
+      const pathUrl = path.relative(
+          this._config.root, path.join(this._config.root, himport.url));
+      this.recursivelyObtainHTMLImports(analysis, pathUrl, set);
+    }
+    set.add(url);
+  }
 }
 
-function recursivelyObtainHTMLImports(
-    analysis: Analysis, url: string, set: Set<string>) {
-  const document = analysis.getDocument(url);
-
-  if (!(document instanceof Document)) {
-    const message = document && document.message;
-    console.warn(`Unable to get document ${url}: ${message}`);
-    return;
-  }
-  const imports = document.getFeatures({kind: 'html-import'});
-
-  for (const himport of imports) {
-    recursivelyObtainHTMLImports(analysis, himport.url, set)
-  }
-  set.add(url);
-}
 
 /**
  * Pre-compute the binding and property effects metadata and insert them into
@@ -123,7 +131,7 @@ async function insertPreBuiltMetadata(
         await page.evaluate(doc.parsedDocument.contents);
       }
     } catch (e) {
-      console.log(e.message)
+      console.log(`Document "${document.url}" had error: ${e}`);
     }
   }
 
@@ -147,57 +155,63 @@ async function insertPreBuiltMetadata(
     const parsedDocument =
         jsDocument.parsedDocument as ParsedJavaScriptDocument;
 
-    let hasProperties = true;
+    let hasProperties = true, processedTemplate = false;
 
     if (element.domModule) {
       const templateNode =
           dom5.query(element.domModule, dom5.predicates.hasTagName('template'));
-      // To make sure that indices match up of `findTemplateNode` after
-      // minification of unrelated nodes, we must strip both text nodes and
-      // comments here.
-      // However, text nodes should only be removed if they are empty. As such,
-      // use the `strip-whitespace` option for that, while we can safely delete
-      // all comments with dom5.
-      dom5.setAttribute(templateNode, 'strip-whitespace', '');
-      dom5.nodeWalkAll(
-              templateNode,
-              dom5.isCommentNode,
-              [],
-              dom5.childNodesIncludeTemplate)
-          .forEach((node) => {
-            dom5.remove(node);
-          });
-      const content = parse5.serialize(element.domModule);
 
-      await page.evaluate(`
-        domModule = document.createElement('div');
-        domModule.innerHTML = \`<dom-module id="${element.tagName}">${
-          content.replace(/`/g, '\\`')}</dom-module>\`;
-        document.body.appendChild(domModule);
-      `);
+      if (templateNode) {
+        // To make sure that indices match up of `findTemplateNode` after
+        // minification of unrelated nodes, we must strip both text nodes and
+        // comments here.
+        // However, text nodes should only be removed if they are empty. As
+        // such, use the `strip-whitespace` option for that, while we can safely
+        // delete all comments with dom5.
+        dom5.nodeWalkAll(
+                templateNode,
+                dom5.isCommentNode,
+                [],
+                dom5.childNodesIncludeTemplate)
+            .forEach((node) => {
+              dom5.remove(node);
+            });
+        const content = parse5.serialize(
+            parse5.treeAdapters.default.getTemplateContent(templateNode));
 
-      // TODO(Tim): Figure out why _registered is not called by Polymer directly
-      const newTemplate: string = await page.evaluate(`
-        ctor = customElements.get('${element.tagName}');
-        window.onerror = function(error) {
-          window.lastError = error;
-        }
-        ctor.prototype._registered && ctor.prototype._registered();
-        ctor.finalize();
-        ctor.prototype._bindTemplate(ctor.prototype._template);
-        window.lastError || ctor.prototype._template.innerHTML;
-      `);
+        await page.evaluate(`
+          domModule = document.createElement('div');
+          domModule.innerHTML = \`<dom-module id="${
+            element.tagName}"><template strip-whitespace>${
+            content.replace(/`/g, '\\`')}</template></dom-module>\`;
+          document.body.appendChild(domModule);
+        `);
 
-      const templateInfo: string = await page.evaluate(`
-        serializeBindings(ctor.prototype._template._templateInfo)
-      `);
+        // TODO(Tim): Figure out why _registered is not called by Polymer
+        // directly
+        const newTemplate: string = await page.evaluate(`
+          ctor = customElements.get('${element.tagName}');
+          ctor.prototype._registered && ctor.prototype._registered();
+          ctor.finalize();
+          ctor.prototype._bindTemplate(ctor.prototype._template);
+          ctor.prototype._template.innerHTML;
+        `);
 
-      const template =
-          dom5.query(element.domModule, dom5.predicates.hasTagName('template'));
+        const templateInfo: string = await page.evaluate(`
+          serializeBindings(ctor.prototype._template._templateInfo)
+        `);
 
-      serializeBindingsToScriptElement(element, parsedDocument, templateInfo);
-      replaceOriginalTemplate(template, newTemplate);
-    } else {
+        const template = dom5.query(
+            element.domModule, dom5.predicates.hasTagName('template'));
+
+        serializeBindingsToScriptElement(element, parsedDocument, templateInfo);
+        replaceOriginalTemplate(template, newTemplate);
+
+        processedTemplate = true;
+      }
+    }
+
+    if (!processedTemplate) {
       hasProperties = await page.evaluate(`
         ctor = customElements.get('${element.tagName}');
         if (ctor.finalize) {
@@ -211,7 +225,7 @@ async function insertPreBuiltMetadata(
 
     if (hasProperties) {
       await processElementProperties(element, parsedDocument, page);
-      removePropertiesFromElementDefinition(element);
+      false && removePropertiesFromElementDefinition(element);
     }
   }
 
@@ -454,7 +468,8 @@ function replaceOriginalTemplate(template: parse5.ASTNode, content: string) {
 function serializeEffects(prototype: any): string {
   const preBuiltEffects: {[effectType: string]: any} = {};
 
-  for (const effectType of Object.values(prototype.PROPERTY_EFFECT_TYPES)) {
+  for (const effectType of Object.values(prototype.PROPERTY_EFFECT_TYPES)
+           .concat(['__observerArgCache'])) {
     if (prototype[effectType]) {
       preBuiltEffects[effectType] = prototype[effectType];
       serializeRunTimeClosures(Object.values(prototype[effectType]));

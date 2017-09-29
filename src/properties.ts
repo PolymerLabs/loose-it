@@ -1,4 +1,3 @@
-import * as espree from 'espree';
 import {ParsedJavaScriptDocument, PolymerElement} from 'polymer-analyzer';
 
 import * as serialization from './serialization';
@@ -9,7 +8,8 @@ const {
   patchUpObserverArgCache,
   serializeRunTimeClosures,
   stripUnnecessaryEffectData,
-  stripSerializedMetadata
+  stripSerializedMetadata,
+  serializeToScriptElement
 } = serialization;
 
 /**
@@ -54,43 +54,31 @@ export function serializeEffectsInBrowser(prototype: any): string {
  * Process the properties of the element, retrieve its metadata from the
  * prototype and serialize the output to the dom module of the element.
  *
- * @param element Element that contains the properties
- * @param prototype Prototype that the effect metadata is computed on
+ * @param element The element to process element properties for
+ * @param document The current document that contains the element
+ * @param page The open browser page to evaluate scripts in
  */
 export async function processElementProperties(
     element: PolymerElement, document: ParsedJavaScriptDocument, page: any) {
   const propertyEffects = await page.evaluate(`
     serializeEffectsInBrowser(ctor.prototype)
   `);
-  serializePropertyEffectsToScriptElement(element, document, propertyEffects);
+  serializeToScriptElement(
+      'preBuiltEffects', element, document, propertyEffects);
   removePropertiesFromElementDefinition(element);
-}
-
-/**
- * Append the serialized computed effects to the dom module of the element.
- *
- * @param element Element to serialize effects for
- * @param prototype Prototype that contains the computed effects
- */
-function serializePropertyEffectsToScriptElement(
-    element: PolymerElement,
-    document: ParsedJavaScriptDocument,
-    propertyEffects: string) {
-  const assignment = espree
-                         .parse(`Polymer.preBuiltEffects['${
-                             element.tagName}'] = ${propertyEffects};`)
-                         .body;
-
-  document.ast.body = assignment.concat(document.ast.body);
 }
 
 /**
  * Remove the property definitions from the Polymer element.
  * Can either be the hybrid version with an object call or a class definition.
  *
- * @param astNode Node that defines the Polymer element
+ * @param element Element to strip properties from
  */
 function removePropertiesFromElementDefinition(element: PolymerElement) {
+  // TODO(Tim): This is a lot of ASTNode traversal magic and the keys
+  // decrementing is very confusing. Clean this code up such that AST traversal
+  // is more straightforward and that removing ASTNodes does not require magic
+  // decrementing of keys.
   const astNode = element.astNode;
   if (astNode.type === 'CallExpression') {
     const argument = astNode.arguments[0];

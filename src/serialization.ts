@@ -2,10 +2,14 @@ import * as espree from 'espree';
 import {ParsedJavaScriptDocument, PolymerElement} from 'polymer-analyzer';
 
 /**
- * Append the serialized computed bindings to the dom module of the element.
+ * Serialize the metadata in its corresponding namespace and insert it into the
+ * document.
  *
- * @param element Element to serialize bindings for
- * @param _templateInfo The computed bindings metadata
+ * @param namespace The namespace which contains the definitions of the
+ * pre-built output
+ * @param element The current polymer element metadat is pre-built for
+ * @param document The current document to insert the metadata into
+ * @param metadata The computed metadata
  */
 export function serializeToScriptElement(
     namespace: string,
@@ -21,7 +25,7 @@ export function serializeToScriptElement(
 
 // Declare here to not generate any Typescript error for not finding
 // `Polymer.EFFECT_FUNCTIONS`
-let Polymer: any = {};
+const Polymer: any = {};
 
 /**
  * Traverse all property effects and replace the closure by the String
@@ -46,6 +50,8 @@ export function serializeRunTimeClosures(propertyEffects: any[]) {
  * serialization.
  *
  * @param effects Computed effect metadata
+ * @param prototype The prototype that contains the context for cache generation
+ * of cached methods
  */
 export function stripUnnecessaryEffectData(effects: any[], prototype: any) {
   prototype.context || (prototype.context = {map: new Map(), index: 0});
@@ -89,6 +95,13 @@ export function stripUnnecessaryEffectData(effects: any[], prototype: any) {
   }
 }
 
+/**
+ * Remap all effects to the the shorter integer key, to minimize the amount of
+ * serialized bytes, while still preserving uniqueness of cache name keys.
+ *
+ * @param effects All original effects referenced by unique but long cache name
+ * @param map Mapping from original cachename to short integer key
+ */
 export function patchUpObserverArgCache(
     effects: any, map: Map<string, string>) {
   for (const [k, v] of Object.entries(effects)) {

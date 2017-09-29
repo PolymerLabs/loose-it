@@ -17,10 +17,10 @@ const {
  * Transform the computed bindings metadata into a string, while minimizing its
  * total size and stripping away unnecessary data.
  *
- * @param templateInfo Binding metadata to serialize
+ * @param prototype Prototype that has the binding metadata to serialize
  */
 export function serializeBindingsInBrowser(prototype: any): string {
-  const templateInfo = prototype._template._templateInfo
+  const templateInfo = prototype._template._templateInfo;
   let propertyEffects = templateInfo.propertyEffects &&
           Object.values(templateInfo.propertyEffects) ||
       [];
@@ -106,6 +106,17 @@ export function serializeBindingsInBrowser(prototype: any): string {
       'content:Polymer.stringToFrag$1');
 }
 
+/**
+ * Serialize all templates into a dom-module and append it to the document body
+ * of the browser page. Then obtain the new template as output from Polymer core
+ * and its corresponding templateInfo. Serialize the templateInfo to the script
+ * element and replace the original template in the file stream.
+ *
+ * @param templateNodes All templates nodes to serialize in a dom-module
+ * @param page The open browser page to evaluate scripts in
+ * @param element Current element to evaluate and process template bindings for
+ * @param parsedDocument The document content of this page
+ */
 export async function processTemplateBindings(
     templateNodes: parse5.ASTNode[],
     page: any,
@@ -142,6 +153,12 @@ export async function processTemplateBindings(
   replaceOriginalTemplate(template, newTemplate);
 }
 
+/**
+ * Serialize a template node. Strip all comments and whitespace and make it
+ * referencable by id.
+ *
+ * @param templateNode Template node to serialize
+ */
 function serializeTemplateNode(templateNode: parse5.ASTNode) {
   // To make sure that indices match up of `findTemplateNode`
   // after
@@ -164,7 +181,7 @@ function serializeTemplateNode(templateNode: parse5.ASTNode) {
   const maybeId = dom5.getAttribute(templateNode, 'id');
   const templateId = maybeId ? ` id="${maybeId}"` : '';
   return `<template strip-whitespace${templateId}>${
-      serializedContent}</template>`
+      serializedContent}</template>`;
 }
 
 /**
@@ -173,8 +190,7 @@ function serializeTemplateNode(templateNode: parse5.ASTNode) {
  *
  * @param template Original template in the dom module
  * @param content Templatecontent that contains the stripped content as a result
- * of
- * `_parseTemplate`
+ * of `_parseTemplate`
  */
 function replaceOriginalTemplate(template: parse5.ASTNode, content: string) {
   const replacedAst = parse5.parse(content);

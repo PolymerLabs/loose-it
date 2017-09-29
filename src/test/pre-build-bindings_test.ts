@@ -65,14 +65,16 @@ suite('Prebuild bindings', function() {
         assert.include(html, '<div id="text-binding"> </div>');
       });
 
-  test(
+  // TODO(Tim): Enable test once properties are again processed.
+  test.skip(
       'removes properties from element definition with Object syntax',
       async () => {
         const html = await getContentFromFile('my-element.html');
         assert.notInclude(html, 'properties: {');
       });
 
-  test(
+  // TODO(Tim): Enable test once properties are again processed.
+  test.skip(
       'removes properties from element definition with Class syntax',
       async () => {
         const html = await getContentFromFile('my-app.html');

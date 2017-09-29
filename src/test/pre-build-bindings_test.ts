@@ -17,10 +17,9 @@
 import {assert} from 'chai';
 import * as path from 'path';
 import {PolymerProject} from 'polymer-build/lib/polymer-project';
+import {emittedFiles} from 'polymer-build/lib/test/util';
 
 import {PreBuildBindings} from '../pre-build-bindings';
-
-import {emittedFiles} from './util';
 
 const mergeStream = require('merge-stream');
 
@@ -55,7 +54,6 @@ suite('Prebuild bindings', function() {
   test('keeps literal parts in bindings', async () => {
     const html = await getContentFromFile('my-app.html');
     assert.include(html, '<div>My-element: </div>');
-    // assert.include(html, 'property-with-literal="literal + "');
   });
 
   test(
